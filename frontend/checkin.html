@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Check In — TransAmerica Trail</title>
+  <link rel="stylesheet" href="/css/checkin.css?v=1775313088">
+</head>
+<body>
+
+<header>
+  <h1>🚴 Check-In</h1>
+  <a href="/">← Live Dashboard</a>
+</header>
+
+<main>
+<div class="form-card">
+
+  <!-- Auth -->
+  <div class="auth-row">
+    <span class="field-label">Password</span>
+    <input type="password" id="auth-password" placeholder="Check-in password" autocomplete="current-password">
+  </div>
+
+  <form id="checkin-form" autocomplete="off">
+
+    <!-- ── Location ─────────────────────────────────────────────────── -->
+    <div class="form-section">
+      <div class="form-section-title">Location</div>
+
+      <div class="geo-row">
+        <button type="button" id="geo-btn">📍 Auto-detect</button>
+        <label>
+          <span class="field-label">Latitude</span>
+          <input type="number" id="f-lat" name="lat" step="0.0001" placeholder="46.1879">
+        </label>
+        <label>
+          <span class="field-label">Longitude (W, positive)</span>
+          <input type="number" id="f-lng" name="lng" step="0.0001" placeholder="123.8313" min="0">
+        </label>
+      </div>
+
+      <div class="field-row single">
+        <label>
+          <span class="field-label">Name (campsite, hotel, host, etc.)</span>
+          <input type="text" id="f-name" name="name" placeholder="Jellystone Campground">
+        </label>
+      </div>
+
+      <div class="field-row">
+        <label>
+          <span class="field-label">Town / Nearest Town</span>
+          <input type="text" id="f-town" name="town" placeholder="Missoula">
+        </label>
+        <label>
+          <span class="field-label">State</span>
+          <select id="f-state" name="state">
+            <option value="">— Select —</option>
+            <option>VA</option><option>KY</option><option>IL</option>
+            <option>MO</option><option>KS</option><option>CO</option>
+            <option>WY</option><option>MT</option><option>ID</option>
+            <option>OR</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="field-row">
+        <label>
+          <span class="field-label">Elevation (feet)</span>
+          <input type="number" id="f-elev" name="elevation_ft" min="0" step="1" placeholder="3200">
+        </label>
+      </div>
+    </div>
+
+    <!-- ── Today's ride ──────────────────────────────────────────────── -->
+    <div class="form-section">
+      <div class="form-section-title">Today's Ride</div>
+
+      <div class="field-row">
+        <label>
+          <span class="field-label">Is today a rest day?</span>
+          <div class="toggle-group">
+            <button type="button" class="toggle-btn" data-target="rest-day" data-value="0">🚴 Riding</button>
+            <button type="button" class="toggle-btn" data-target="rest-day" data-value="1">😴 Rest Day</button>
+          </div>
+          <input type="hidden" id="f-rest" name="is_rest_day" value="0">
+        </label>
+      </div>
+
+      <div id="ride-fields">
+        <div class="field-row three">
+          <label>
+            <span class="field-label">Miles Today</span>
+            <input type="number" id="f-miles-today" name="miles_today" min="0" step="0.1" placeholder="65.0">
+          </label>
+          <label>
+            <span class="field-label">Avg Speed (mph)</span>
+            <input type="number" id="f-speed" name="avg_speed_today" min="0" step="0.1" placeholder="12.5">
+          </label>
+          <label>
+            <span class="field-label">Moving Time (min)</span>
+            <input type="number" id="f-movetime" name="moving_time_minutes" min="0" step="1" placeholder="312">
+          </label>
+        </div>
+        <div class="field-row">
+          <label>
+            <span class="field-label">Elevation Gain (ft)</span>
+            <input type="number" id="f-gain" name="elevation_gain_today" min="0" step="1" placeholder="2400">
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Lodging ───────────────────────────────────────────────────── -->
+    <div class="form-section">
+      <div class="form-section-title">Tonight's Lodging</div>
+      <div class="toggle-group">
+        <button type="button" class="toggle-btn" data-target="lodging" data-value="camping">⛺ Camping</button>
+        <button type="button" class="toggle-btn" data-target="lodging" data-value="warmshowers">🏠 WarmShowers</button>
+        <button type="button" class="toggle-btn" data-target="lodging" data-value="hotel">🏨 Hotel/Motel</button>
+        <button type="button" class="toggle-btn" data-target="lodging" data-value="bnb">🛏 B&amp;B / Host</button>
+        <button type="button" class="toggle-btn" data-target="lodging" data-value="other">Other</button>
+      </div>
+      <input type="hidden" id="f-lodging" name="lodging_type" value="">
+    </div>
+
+    <!-- ── Weather (auto-fetched if coords present) ──────────────────── -->
+    <div class="form-section">
+      <div class="form-section-title">Weather</div>
+      <div id="wx-preview"></div>
+      <div class="field-row three">
+        <label>
+          <span class="field-label">Temp (°F)</span>
+          <input type="number" id="f-wx-temp" name="weather_temp_f" step="1" placeholder="72">
+        </label>
+        <label>
+          <span class="field-label">Wind (mph)</span>
+          <input type="number" id="f-wx-wind" name="weather_wind_mph" min="0" step="1" placeholder="10">
+        </label>
+        <label>
+          <span class="field-label">Condition</span>
+          <input type="text" id="f-wx-cond" name="weather_condition" placeholder="Partly Cloudy">
+        </label>
+      </div>
+    </div>
+
+    <!-- ── Note ─────────────────────────────────────────────────────── -->
+    <div class="form-section">
+      <div class="form-section-title">Note</div>
+      <div class="field-row single">
+        <label>
+          <span class="field-label">Today's note (shown in mission log)</span>
+          <textarea id="f-note" name="note" placeholder="Big headwind most of the day but made it to Missoula. Beautiful ride through the Clark Fork canyon."></textarea>
+        </label>
+      </div>
+      <div class="field-row single">
+        <label>
+          <span class="field-label">Photo URL (optional)</span>
+          <input type="url" id="f-photo" name="photo_url" placeholder="https://…">
+        </label>
+      </div>
+    </div>
+
+    <!-- ── Date/time ─────────────────────────────────────────────────── -->
+    <div class="form-section">
+      <div class="form-section-title">Timestamp</div>
+      <div class="field-row single">
+        <label>
+          <span class="field-label">Check-in date/time (defaults to now)</span>
+          <input type="datetime-local" id="f-datetime" name="created_at">
+        </label>
+      </div>
+    </div>
+
+    <button type="submit" id="submit-btn">Submit Check-In</button>
+  </form>
+
+  <div id="flash"></div>
+</div>
+</main>
+
+<script>
+const API = '/api';
+
+// ── Toggle buttons ─────────────────────────────────────────────────────────
+document.querySelectorAll('.toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.target;
+    document.querySelectorAll(`.toggle-btn[data-target="${target}"]`).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    if (target === 'rest-day') {
+      document.getElementById('f-rest').value = btn.dataset.value;
+      document.getElementById('ride-fields').style.opacity = btn.dataset.value === '1' ? '0.4' : '1';
+    } else if (target === 'lodging') {
+      document.getElementById('f-lodging').value = btn.dataset.value;
+    }
+  });
+});
+
+// ── Geolocation ───────────────────────────────────────────────────────────
+document.getElementById('geo-btn').addEventListener('click', () => {
+  const btn = document.getElementById('geo-btn');
+  if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
+  btn.disabled = true;
+  btn.textContent = 'Detecting…';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      document.getElementById('f-lat').value = pos.coords.latitude.toFixed(5);
+      document.getElementById('f-lng').value = Math.abs(pos.coords.longitude).toFixed(5);
+      btn.disabled = false;
+      btn.textContent = '📍 Detected ✓';
+      fetchWeatherPreview(pos.coords.latitude, pos.coords.longitude);
+    },
+    err => {
+      btn.disabled = false;
+      btn.textContent = '📍 Auto-detect';
+      alert('Could not get location: ' + err.message);
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+});
+
+// ── Weather preview ───────────────────────────────────────────────────────
+async function fetchWeatherPreview(lat, lng) {
+  const el = document.getElementById('wx-preview');
+  el.textContent = 'Fetching weather…';
+  el.className = 'visible';
+  try {
+    const url =
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
+      `&current=temperature_2m,wind_speed_10m,wind_direction_10m,weather_code` +
+      `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`;
+    const r = await fetch(url);
+    const d = await r.json();
+    const c = d.current;
+    const cond = wmoDescription(c.weather_code);
+    el.textContent = `Auto-detected: ${Math.round(c.temperature_2m)}°F · ${cond} · Wind ${Math.round(c.wind_speed_10m)} mph`;
+    // Pre-fill fields if empty
+    if (!document.getElementById('f-wx-temp').value)
+      document.getElementById('f-wx-temp').value = Math.round(c.temperature_2m);
+    if (!document.getElementById('f-wx-wind').value)
+      document.getElementById('f-wx-wind').value = Math.round(c.wind_speed_10m);
+    if (!document.getElementById('f-wx-cond').value)
+      document.getElementById('f-wx-cond').value = cond;
+  } catch {
+    el.textContent = 'Could not fetch weather (will try again on submit).';
+  }
+}
+
+function wmoDescription(code) {
+  const map = {0:'Clear',1:'Mostly Clear',2:'Partly Cloudy',3:'Overcast',45:'Foggy',48:'Icy Fog',
+    51:'Light Drizzle',53:'Drizzle',55:'Heavy Drizzle',61:'Light Rain',63:'Rain',65:'Heavy Rain',
+    71:'Light Snow',73:'Snow',75:'Heavy Snow',80:'Showers',81:'Heavy Showers',95:'Thunderstorm'};
+  return map[code] ?? 'Unknown';
+}
+
+// ── Form submit ───────────────────────────────────────────────────────────
+document.getElementById('checkin-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const password = document.getElementById('auth-password').value;
+  if (!password) { showFlash('Enter your check-in password first.', 'error'); return; }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  const fd = new FormData(e.target);
+  const body = {};
+  for (const [k, v] of fd.entries()) {
+    if (v === '' || v === null) continue;
+    body[k] = isNaN(v) || v === '' ? v : (k === 'name' || k === 'town' || k === 'state' || k === 'lodging_type' || k === 'note' || k === 'photo_url' || k === 'weather_condition' || k === 'created_at' ? v : Number(v));
+  }
+  if (body.is_rest_day !== undefined) body.is_rest_day = body.is_rest_day === 1 || body.is_rest_day === '1';
+  if (body.lng != null) body.lng = -Math.abs(body.lng);
+
+  // Format datetime
+  if (body.created_at) {
+    body.created_at = new Date(body.created_at).toISOString();
+  }
+
+  try {
+    const res = await fetch(`${API}/checkins`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Checkin-Password': password },
+      body: JSON.stringify(body),
+    });
+    if (res.status === 401) throw new Error('Wrong password.');
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    showFlash('Check-in saved! Dashboard will update shortly.', 'success');
+    e.target.reset();
+    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('f-lodging').value = '';
+    document.getElementById('wx-preview').className = '';
+  } catch(err) {
+    showFlash(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Submit Check-In';
+  }
+});
+
+function showFlash(msg, type) {
+  const el = document.getElementById('flash');
+  el.textContent = msg;
+  el.className = type;
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Default datetime to now
+const dtInput = document.getElementById('f-datetime');
+const now = new Date();
+now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+dtInput.value = now.toISOString().slice(0, 16);
+</script>
+</body>
+</html>

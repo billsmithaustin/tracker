@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TransAmerica Trail Tracker</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/css/main.css?v=1775571003">
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header>
+    <div class="header-left">
+      <div class="logo-badge">🚴</div>
+      <div class="header-title">
+        <h1>TransAmerica Trail</h1>
+        <div class="subtitle">Yorktown, VA → Astoria, OR · 4,205 miles</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-pill">
+        <div class="status-dot offline"></div>
+        <span>Not Started</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Mission status: key metrics ──────────────────────────────────── -->
+  <div id="mission-status">
+    <div id="ms-metrics">
+      <div class="ms-metric">
+        <div class="ms-metric-label">Elapsed</div>
+        <div class="ms-metric-value" id="ms-elapsed">—</div>
+      </div>
+      <div class="ms-metric">
+        <div class="ms-metric-label">Miles</div>
+        <div class="ms-metric-value" id="ms-miles">0</div>
+      </div>
+      <div class="ms-metric">
+        <div class="ms-metric-label">Remaining</div>
+        <div class="ms-metric-value" id="ms-remaining">—</div>
+      </div>
+      <div class="ms-metric">
+        <div class="ms-metric-label">Complete</div>
+        <div class="ms-metric-value" id="ms-pct">0%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Route progress bar ─────────────────────────────────────────────── -->
+  <div id="progress-bar-wrap">
+    <div class="progress-track">
+      <div class="progress-bg"></div>
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      <div class="progress-marker" id="progress-marker" style="left:0%"></div>
+    </div>
+    <div class="progress-endpoints">
+      <span>Astoria</span>
+      <span>Yorktown</span>
+    </div>
+    <div class="progress-miles-row">
+      <span id="progress-miles">0 / 4,205 mi</span>
+    </div>
+  </div>
+
+  <!-- ── Main grid: map + sidebar ──────────────────────────────────────── -->
+  <div id="main-grid">
+
+    <!-- Map -->
+    <div id="map-container">
+      <div id="map"></div>
+      <div id="map-overlay">
+        <div id="map-location-name">Awaiting first check-in</div>
+        <div id="map-section-name">TransAmerica Trail</div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+
+      <!-- Current position -->
+      <div class="panel">
+        <div class="panel-title">Current Position</div>
+        <div class="metrics-grid">
+          <div class="metric full">
+            <div class="metric-label">Location</div>
+            <div class="metric-value" style="font-size:.85rem" id="tel-location">—</div>
+          </div>
+          <div class="metric full">
+            <div class="metric-label">Elevation</div>
+            <div class="metric-value" id="tel-elev">—</div>
+            <div class="metric-unit">feet</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Today's ride -->
+      <div class="panel">
+        <div class="panel-title">Today's Ride</div>
+        <div class="metrics-grid">
+          <div class="metric">
+            <div class="metric-label">Distance</div>
+            <div class="metric-value green" id="tel-today">—</div>
+            <div class="metric-unit">miles</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Avg Speed</div>
+            <div class="metric-value" id="tel-speed">—</div>
+            <div class="metric-unit">mph</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Elev Gain</div>
+            <div class="metric-value" id="tel-gain">—</div>
+            <div class="metric-unit">feet</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Elev Loss</div>
+            <div class="metric-value" id="tel-loss">—</div>
+            <div class="metric-unit">feet</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Moving Time</div>
+            <div class="metric-value" id="tel-time">—</div>
+            <div class="metric-unit">h:mm</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Lodging</div>
+            <div class="metric-value" style="font-size:.85rem" id="tel-lodging">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Weather -->
+      <div class="panel">
+        <div class="panel-title">Weather</div>
+        <div class="weather-row">
+          <div class="weather-temp" id="wx-temp">—</div>
+          <div class="weather-detail">
+            <strong id="wx-condition">—</strong><br>
+            <span id="wx-wind"></span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /sidebar -->
+  </div><!-- /main-grid -->
+
+  <!-- ── Elevation profile ─────────────────────────────────────────────── -->
+  <div id="elevation-wrap">
+    <div class="section-title">Elevation Profile — Check-in History</div>
+    <canvas id="elevation-chart-canvas"></canvas>
+  </div>
+
+  <!-- ── Cumulative stats ──────────────────────────────────────────────── -->
+  <div id="cumulative-wrap">
+    <div class="cum-stat">
+      <div class="cum-label">Total Miles</div>
+      <div class="cum-value" id="cum-total">0</div>
+    </div>
+    <div class="cum-stat">
+      <div class="cum-label">Total Climbing</div>
+      <div class="cum-value" id="cum-climb">0 <small>ft</small></div>
+    </div>
+    <div class="cum-stat">
+      <div class="cum-label">Riding Days</div>
+      <div class="cum-value" id="cum-days">0</div>
+    </div>
+    <div class="cum-stat">
+      <div class="cum-label">Rest Days</div>
+      <div class="cum-value" id="cum-rest">0</div>
+    </div>
+    <div class="cum-stat">
+      <div class="cum-label">Avg Miles/Day</div>
+      <div class="cum-value" id="cum-avg">0</div>
+    </div>
+    <div class="cum-stat">
+      <div class="cum-label">Longest Day</div>
+      <div class="cum-value" id="cum-longest">0 <small>mi</small></div>
+    </div>
+    <div class="cum-stat">
+      <div class="cum-label">Nights Camped</div>
+      <div class="cum-value" id="cum-camped">0</div>
+    </div>
+    <div class="cum-stat">
+      <div class="cum-label">Nights Indoor</div>
+      <div class="cum-value" id="cum-indoor">0</div>
+    </div>
+  </div>
+
+  <!-- ── Mission log ───────────────────────────────────────────────────── -->
+  <div id="log-wrap">
+    <div class="section-title">Latest check-ins</div>
+    <div id="log-entries">
+      <p class="log-empty">No check-ins yet. Trip hasn't started!</p>
+    </div>
+    <div id="log-footer">
+      <a href="/log.html" class="log-more-btn">View all check-ins →</a>
+    </div>
+  </div>
+
+  <!-- ── Footer ───────────────────────────────────────────────────────── -->
+  <footer>
+    <span>TransAmerica Trail · Yorktown, VA → Astoria, OR · 4,205 miles</span>
+    <span id="last-updated">—</span>
+    <span><a href="/checkin.html" style="color:var(--text-dim);text-decoration:none">Check In →</a></span>
+  </footer>
+
+</div><!-- /app -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src="/js/route-data.js?v=1775309859"></script>
+<script src="/js/dashboard.js?v=1775425598"></script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mission Log — TransAmerica Trail</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div id="app" style="grid-template-rows: auto 1fr auto;">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header>
+    <div class="header-left">
+      <div class="logo-badge">🚴</div>
+      <div class="header-title">
+        <h1>TransAmerica Trail</h1>
+        <div class="subtitle">Yorktown, VA → Astoria, OR · 4,205 miles</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <a href="/" class="log-more-btn" style="white-space:nowrap;">← Back to Tracker</a>
+    </div>
+  </header>
+
+  <!-- ── Log ────────────────────────────────────────────────────────────── -->
+  <div id="log-wrap">
+    <div class="section-title">All Check-ins</div>
+
+    <div class="pagination" id="pagination-top">
+      <button class="page-btn" id="prev-top" disabled>← Prev</button>
+      <span class="page-info" id="page-info-top">—</span>
+      <button class="page-btn" id="next-top">Next →</button>
+    </div>
+
+    <div id="log-entries">
+      <p class="log-empty">Loading…</p>
+    </div>
+
+    <div class="pagination" id="pagination-bottom">
+      <button class="page-btn" id="prev-bottom" disabled>← Prev</button>
+      <span class="page-info" id="page-info-bottom">—</span>
+      <button class="page-btn" id="next-bottom">Next →</button>
+    </div>
+  </div>
+
+  <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+  <footer>
+    <span>TransAmerica Trail · Yorktown, VA → Astoria, OR · 4,205 miles</span>
+    <span id="last-updated">—</span>
+    <span><a href="/checkin.html" style="color:var(--text-dim);text-decoration:none">Check In →</a></span>
+  </footer>
+
+</div>
+
+<script>
+const API = '/api';
+const PER_PAGE = 20;
+let allCheckins = [];
+let currentPage = 1;
+
+// ── Helpers (duplicated from dashboard.js to keep this page self-contained) ─
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = iso.length === 10 ? new Date(iso + 'T12:00:00') : new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function fmtDuration(minutes) {
+  if (minutes == null) return '—';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+function fmtLodging(type) {
+  const map = {
+    camping: '⛺ Camping', hotel: '🏨 Hotel', motel: '🏨 Motel',
+    warmshowers: '🏠 WarmShowers', bnb: '🛏 B&B', other: 'Other',
+  };
+  return type ? (map[type] || type) : null;
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+function renderPage(page) {
+  currentPage = page;
+  const totalPages = Math.max(1, Math.ceil(allCheckins.length / PER_PAGE));
+  const start = (page - 1) * PER_PAGE;
+  const slice = allCheckins.slice(start, start + PER_PAGE);
+
+  const wrap = document.getElementById('log-entries');
+
+  if (!slice.length) {
+    wrap.innerHTML = '<p class="log-empty">No check-ins yet. Trip hasn\'t started!</p>';
+  } else {
+    wrap.innerHTML = slice.map(c => {
+      const badges = [];
+      if (c.is_rest_day)    badges.push('<span class="log-badge rest">Rest Day</span>');
+      if (c.lodging_type === 'camping') badges.push('<span class="log-badge camp">⛺ Camp</span>');
+      else if (c.lodging_type)          badges.push(`<span class="log-badge">${fmtLodging(c.lodging_type)}</span>`);
+
+      const stats = [];
+      if (c.miles_today)          stats.push(`<span><span class="hi">${c.miles_today.toFixed(1)}</span> mi</span>`);
+      if (c.elevation_gain_today) stats.push(`<span><span class="hi">+${c.elevation_gain_today.toLocaleString()}</span> ft gain</span>`);
+      if (c.elevation_ft)         stats.push(`<span><span class="hi">${c.elevation_ft.toLocaleString()}</span> ft elev</span>`);
+      if (c.avg_speed_today)      stats.push(`<span><span class="hi">${c.avg_speed_today.toFixed(1)}</span> mph avg</span>`);
+      if (c.moving_time_minutes)  stats.push(`<span><span class="hi">${fmtDuration(c.moving_time_minutes)}</span> riding</span>`);
+
+      const townState = c.town
+        ? `${c.town}${c.state ? ', ' + c.state : ''}`
+        : (c.state || '');
+      const location = c.name
+        ? (townState ? `${c.name} · ${townState}` : c.name)
+        : (townState || '—');
+
+      return `
+        <div class="log-entry">
+          <div class="log-date">${fmtDate(c.date || c.created_at)}</div>
+          <div class="log-body">
+            <div class="log-header">
+              <span class="log-location">${escHtml(location)}</span>
+              ${badges.join('')}
+            </div>
+            ${stats.length ? `<div class="log-stats">${stats.join('')}</div>` : ''}
+            ${c.note ? `<div class="log-note">${escHtml(c.note)}</div>` : ''}
+            ${c.photo_url ? `<img class="log-photo" src="${escHtml(c.photo_url)}" alt="Day photo" loading="lazy">` : ''}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  const pageInfo = `Page ${page} of ${totalPages} · ${allCheckins.length} check-in${allCheckins.length !== 1 ? 's' : ''}`;
+  document.getElementById('page-info-top').textContent    = pageInfo;
+  document.getElementById('page-info-bottom').textContent = pageInfo;
+
+  document.getElementById('prev-top').disabled    = page <= 1;
+  document.getElementById('prev-bottom').disabled = page <= 1;
+  document.getElementById('next-top').disabled    = page >= totalPages;
+  document.getElementById('next-bottom').disabled = page >= totalPages;
+
+  document.getElementById('last-updated').textContent =
+    'Updated ' + new Date().toLocaleTimeString();
+
+  // Scroll to top of log on page change (but not on initial load)
+  if (page !== 1 || allCheckins.length > 0) {
+    document.getElementById('log-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function goTo(delta) {
+  const totalPages = Math.ceil(allCheckins.length / PER_PAGE);
+  const next = Math.max(1, Math.min(totalPages, currentPage + delta));
+  if (next !== currentPage) renderPage(next);
+}
+
+// ── Wire up pagination buttons ────────────────────────────────────────────────
+
+['prev-top', 'prev-bottom'].forEach(id =>
+  document.getElementById(id).addEventListener('click', () => goTo(-1)));
+['next-top', 'next-bottom'].forEach(id =>
+  document.getElementById(id).addEventListener('click', () => goTo(+1)));
+
+// ── Fetch ─────────────────────────────────────────────────────────────────────
+
+async function load() {
+  try {
+    const res = await fetch(`${API}/checkins`);
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    allCheckins = await res.json(); // already newest-first from the API
+    renderPage(1);
+  } catch (e) {
+    document.getElementById('log-entries').innerHTML =
+      `<p class="log-empty">Could not load check-ins: ${escHtml(e.message)}</p>`;
+    console.error(e);
+  }
+}
+
+load();
+</script>
+</body>
+</html>
