@@ -1,4 +1,4 @@
-.PHONY: up down build logs reset gpx stamp
+.PHONY: up down build logs reset gpx stamp provision deploy
 
 up: stamp ## Start all services (build if needed)
 	docker compose up --build
@@ -20,3 +20,9 @@ stamp: ## Rewrite ?v= cache-busters in HTML from asset file mtimes
 
 gpx: ## Process GPX files → frontend/js/route-data.js (requires gpx/ directory)
 	go run ./tools/process-gpx
+
+provision: ## Create GCE e2-micro VM, static IP, and firewall rule (run once)
+	./scripts/provision-gce.sh
+
+deploy: ## Pull latest code and restart the stack on the GCE VM
+	./scripts/deploy.sh
