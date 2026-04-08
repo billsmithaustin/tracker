@@ -140,7 +140,7 @@ func applyMigrations() {
 func seedConfig() {
 	defaults := map[string]string{
 		"rider_name":        "Bill",
-		"start_date":        "2026-04-03",
+		"start_date":        "2026-04-16",
 		"route_total_miles": "4205",
 		"target_days":       "90",
 	}

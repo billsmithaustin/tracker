@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Check In — TransAmerica Trail</title>
-  <link rel="stylesheet" href="/css/checkin.css?v=1775313088">
+  <link rel="stylesheet" href="/css/checkin.css?v=1775615229">
 </head>
 <body>
 
@@ -154,10 +154,19 @@
         </label>
       </div>
       <div class="field-row single">
-        <label>
-          <span class="field-label">Photo URL (optional)</span>
+        <span class="field-label">Photo (optional)</span>
+        <div class="photo-upload-area">
+          <button type="button" id="photo-upload-btn">Upload Photo</button>
+          <input type="file" id="photo-file-input" accept="image/*" style="display:none">
+          <span id="photo-upload-status"></span>
+        </div>
+        <label style="margin-top:8px">
+          <span class="field-label">or paste URL</span>
           <input type="url" id="f-photo" name="photo_url" placeholder="https://…">
         </label>
+        <div id="photo-preview-wrap" style="display:none;margin-top:10px">
+          <img id="photo-preview" src="" alt="Photo preview" style="max-width:100%;border-radius:8px;border:1.5px solid var(--border)">
+        </div>
       </div>
     </div>
 
@@ -280,6 +289,28 @@ document.getElementById('checkin-form').addEventListener('submit', async e => {
   }
 
   try {
+    // If a file is staged for upload, send it now before the checkin
+    const fileInput = document.getElementById('photo-file-input');
+    const stagedFile = fileInput.files[0];
+    if (stagedFile) {
+      btn.textContent = 'Uploading photo…';
+      const photoFd = new FormData();
+      photoFd.append('photo', stagedFile);
+      const photoRes = await fetch(`${API}/photos`, {
+        method: 'POST',
+        headers: { 'X-Checkin-Password': password },
+        body: photoFd,
+      });
+      if (photoRes.status === 401) throw new Error('Wrong password.');
+      if (!photoRes.ok) {
+        const err = await photoRes.json().catch(() => ({}));
+        throw new Error(err.error || `Photo upload failed (${photoRes.status})`);
+      }
+      const { url } = await photoRes.json();
+      body.photo_url = url;
+      btn.textContent = 'Submitting…';
+    }
+
     const res = await fetch(`${API}/checkins`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Checkin-Password': password },
@@ -292,6 +323,9 @@ document.getElementById('checkin-form').addEventListener('submit', async e => {
     document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('f-lodging').value = '';
     document.getElementById('wx-preview').className = '';
+    showPhotoPreview('');
+    document.getElementById('photo-upload-status').textContent = '';
+    document.getElementById('photo-upload-status').className = '';
   } catch(err) {
     showFlash(err.message, 'error');
   } finally {
@@ -305,6 +339,46 @@ function showFlash(msg, type) {
   el.textContent = msg;
   el.className = type;
   el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ── Photo upload ──────────────────────────────────────────────────────────
+document.getElementById('photo-upload-btn').addEventListener('click', () => {
+  document.getElementById('photo-file-input').click();
+});
+
+document.getElementById('photo-file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  const status = document.getElementById('photo-upload-status');
+  if (!file) {
+    status.textContent = '';
+    status.className = '';
+    showPhotoPreview('');
+    return;
+  }
+  // Show local preview immediately; actual upload happens on form submit
+  status.textContent = `${file.name} ready`;
+  status.className = 'ok';
+  document.getElementById('f-photo').value = ''; // clear any pasted URL
+  const reader = new FileReader();
+  reader.onload = ev => showPhotoPreview(ev.target.result);
+  reader.readAsDataURL(file);
+});
+
+// Show preview whenever the URL field changes
+document.getElementById('f-photo').addEventListener('input', e => {
+  showPhotoPreview(e.target.value.trim());
+});
+
+function showPhotoPreview(url) {
+  const wrap = document.getElementById('photo-preview-wrap');
+  const img  = document.getElementById('photo-preview');
+  if (url) {
+    img.src = url;
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+    img.src = '';
+  }
 }
 
 // Default datetime to now

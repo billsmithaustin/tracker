@@ -23,6 +23,10 @@ func main() {
 	mux.HandleFunc("POST /checkins", handleCreateCheckin)
 	mux.HandleFunc("DELETE /checkins/{id}", handleDeleteCheckin)
 
+	// Photo upload
+	mux.HandleFunc("POST /photos", handleUploadPhoto)
+	mux.HandleFunc("GET /photos/{filename}", handleGetPhoto)
+
 	// Trip config
 	mux.HandleFunc("GET /trip", handleGetTrip)
 	mux.HandleFunc("PUT /trip", handleUpdateTrip)

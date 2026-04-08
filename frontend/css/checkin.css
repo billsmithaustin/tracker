@@ -336,3 +336,36 @@ textarea {
 #ride-fields {
   transition: opacity .2s;
 }
+
+/* ── Photo upload ────────────────────────────────────────────────────── */
+.photo-upload-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+#photo-upload-btn {
+  padding: 13px 18px;
+  background: var(--accent-bg);
+  border: 1.5px solid var(--accent);
+  border-radius: 8px;
+  color: var(--accent);
+  font-family: var(--sans);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+  min-height: 50px;
+}
+#photo-upload-btn:active { background: #d4e8d4; }
+#photo-upload-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+#photo-upload-status {
+  font-size: .85rem;
+  font-weight: 500;
+}
+#photo-upload-status.uploading { color: var(--text-dim); }
+#photo-upload-status.ok        { color: var(--green); }
+#photo-upload-status.err       { color: var(--red); }

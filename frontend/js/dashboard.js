@@ -21,6 +21,7 @@ function initMap() {
   map = L.map('map', {
     center: [39.5, -100],
     zoom: 4,
+    minZoom: 4,
     zoomControl: false,
     attributionControl: true,
   });
@@ -446,7 +447,7 @@ function renderLog(checkins) {
           </div>
           ${stats.length ? `<div class="log-stats">${stats.join('')}</div>` : ''}
           ${c.note ? `<div class="log-note">${escHtml(c.note)}</div>` : ''}
-          ${c.photo_url ? `<img class="log-photo" src="${escHtml(c.photo_url)}" alt="Day photo" loading="lazy">` : ''}
+          ${c.photo_url ? `<a href="${escHtml(c.photo_url)}" target="_blank" rel="noopener"><img class="log-photo" src="${escHtml(c.photo_url)}" alt="Day photo" loading="lazy"></a>` : ''}
         </div>
       </div>`;
   }).join('');
