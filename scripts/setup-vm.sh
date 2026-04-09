@@ -104,7 +104,8 @@ if [[ -n "$DOMAIN" && -n "$CERTBOT_EMAIL" ]]; then
   echo ""
   echo "==> Installing cert renewal cron job..."
   CRON_CMD="0 3 * * * certbot renew --standalone --pre-hook \"docker compose -f $APP_DIR/docker-compose.yml -f $APP_DIR/docker-compose.prod.yml down\" --post-hook \"docker compose -f $APP_DIR/docker-compose.yml -f $APP_DIR/docker-compose.prod.yml up -d --no-build\""
-  (sudo crontab -l 2>/dev/null | grep -v certbot; echo "$CRON_CMD") | sudo crontab -
+  EXISTING_CRON=$(sudo crontab -l 2>/dev/null || true)
+  (echo "$EXISTING_CRON" | grep -v certbot || true; echo "$CRON_CMD") | sudo crontab -
   echo "    Renewal cron installed."
 else
   echo ""
