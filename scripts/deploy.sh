@@ -36,9 +36,9 @@ gcloud compute ssh "$INSTANCE" \
     cd \$HOME/tracker
     git pull --ff-only
     docker compose pull
-    docker compose up -d --no-build
+    docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
     docker image prune -f
-    docker compose ps
+    docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
   "
 
 echo ""
