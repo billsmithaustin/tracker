@@ -37,6 +37,7 @@ gcloud compute ssh "$INSTANCE" \
     git pull --ff-only
     docker compose pull
     docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
+    docker compose -f docker-compose.yml -f docker-compose.prod.yml restart nginx
     docker image prune -f
     docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
   "
