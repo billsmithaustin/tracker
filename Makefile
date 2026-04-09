@@ -24,8 +24,12 @@ gpx: ## Process GPX files → frontend/js/route-data.js (requires gpx/ directory
 provision: ## Create GCE e2-micro VM, Artifact Registry repo, static IP, firewall (run once)
 	./scripts/provision-gce.sh
 
-push: ## Build images locally and push to Artifact Registry
-	docker compose build && docker compose push
+PROJECT_ID := $(shell grep '^PROJECT_ID=' .env | cut -d= -f2)
+REGISTRY   := us-west1-docker.pkg.dev/$(PROJECT_ID)/tracker
+
+push: ## Build images for linux/amd64 and push to Artifact Registry
+	docker buildx build --platform linux/amd64 -t $(REGISTRY)/api:latest --push ./api
+	docker buildx build --platform linux/amd64 -t $(REGISTRY)/frontend:latest --push ./frontend
 
 deploy: push ## Build, push images, then pull and restart on the GCE VM
 	./scripts/deploy.sh
