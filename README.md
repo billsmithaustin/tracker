@@ -18,14 +18,17 @@ make gpx                # regenerate route-data.js from GPX files
 
 Google's always-free tier includes one `e2-micro` VM (1 vCPU, 1 GB RAM, 30 GB disk) in `us-west1`, `us-central1`, or `us-east1`. The existing Docker Compose stack runs on it unchanged.
 
+Docker images are built locally on your Mac and pushed to Google Artifact Registry, so the VM only pulls pre-built images — no compilation on the e2-micro.
+
 ### Prerequisites
 
 - [gcloud CLI](https://cloud.google.com/sdk/docs/install) installed and authenticated (`gcloud auth login`)
 - A Google Cloud project (`gcloud config set project PROJECT_ID`)
+- Docker Desktop running locally
 
 ### One-time setup
 
-**1. Provision the VM**
+**1. Provision the VM and Artifact Registry**
 
 ```bash
 make provision
@@ -33,15 +36,24 @@ make provision
 ```
 
 This creates:
+- An Artifact Registry Docker repository (`us-west1`)
 - A static external IP address (free while attached to a running instance)
 - An `e2-micro` VM running Debian 12 in `us-west1-a`
 - A firewall rule opening ports 80, 443, and 8080
 
-**2. Edit `scripts/setup-vm.sh`**
+**2. Add `PROJECT_ID` to your `.env`**
 
-Replace `YOUR_USER` in `REPO_URL` with your GitHub username.
+```bash
+echo "PROJECT_ID=$(gcloud config get-value project)" >> .env
+```
 
-**3. Upload your `.env` and run setup on the VM**
+**3. Build and push images**
+
+```bash
+make push
+```
+
+**4. Upload your `.env` and run setup on the VM**
 
 ```bash
 gcloud compute scp .env tracker:~ --zone=us-west1-a
@@ -51,22 +63,20 @@ gcloud compute ssh tracker --zone=us-west1-a
 Then on the VM:
 
 ```bash
-git clone https://github.com/YOUR_USER/tracker.git
-bash ~/tracker/scripts/setup-vm.sh
+bash <(curl -fsSL https://raw.githubusercontent.com/billsmithaustin/tracker/main/scripts/setup-vm.sh)
 ```
 
 The tracker will be running at `http://<static-ip>:8080`.
 
 ### Deploying updates
 
-After pushing commits to the repo:
+After making changes locally:
 
 ```bash
 make deploy
-# or: ./scripts/deploy.sh [INSTANCE] [ZONE] [PROJECT_ID]
 ```
 
-This SSHes into the VM, pulls the latest code, rebuilds the Docker images, and restarts the stack.
+This builds updated images on your Mac, pushes them to Artifact Registry, then SSHes into the VM to pull and restart.
 
 ### Custom domain + SSL (optional)
 

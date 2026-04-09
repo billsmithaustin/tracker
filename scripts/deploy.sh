@@ -1,45 +1,44 @@
 #!/usr/bin/env bash
-# deploy.sh — push updates to the Compute Engine VM
+# deploy.sh — build images locally, push to Artifact Registry, restart on the VM
 #
 # Run from your local machine after pushing commits to the repo.
-# SSHes into the VM, pulls the latest code, and restarts the stack.
 #
 # Usage:
 #   ./scripts/deploy.sh [INSTANCE_NAME] [ZONE] [PROJECT_ID]
 #
 # Defaults match what provision-gce.sh created.
+# PROJECT_ID can also be set in .env.
 
 set -euo pipefail
 
 INSTANCE="${1:-tracker}"
 ZONE="${2:-us-west1-a}"
-PROJECT="${3:-$(gcloud config get-value project 2>/dev/null)}"
 
-if [[ -z "$PROJECT" ]]; then
-  echo "ERROR: no project set. Pass a project ID or run: gcloud config set project PROJECT_ID"
+# Load PROJECT_ID from .env if not passed and not already set
+if [[ -z "${PROJECT_ID:-}" ]]; then
+  if [[ -f ".env" ]]; then
+    PROJECT_ID=$(grep -E '^PROJECT_ID=' .env | cut -d= -f2)
+  fi
+fi
+PROJECT_ID="${3:-${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}}"
+
+if [[ -z "$PROJECT_ID" ]]; then
+  echo "ERROR: PROJECT_ID not set. Add it to .env or pass it as the third argument."
   exit 1
 fi
 
-APP_DIR="\$HOME/tracker"
-
-echo "==> Deploying to $INSTANCE ($ZONE, $PROJECT)..."
-
+echo "==> Pulling and restarting on $INSTANCE ($ZONE)..."
 gcloud compute ssh "$INSTANCE" \
   --zone="$ZONE" \
-  --project="$PROJECT" \
+  --project="$PROJECT_ID" \
   --command="
     set -euo pipefail
-    echo '--- pulling latest code ---'
-    git -C $APP_DIR pull --ff-only
-
-    echo '--- rebuilding and restarting ---'
-    docker compose -f $APP_DIR/docker-compose.yml up -d --build
-
-    echo '--- removing old images ---'
+    cd \$HOME/tracker
+    git pull --ff-only
+    docker compose pull
+    docker compose up -d --no-build
     docker image prune -f
-
-    echo '--- done ---'
-    docker compose -f $APP_DIR/docker-compose.yml ps
+    docker compose ps
   "
 
 echo ""

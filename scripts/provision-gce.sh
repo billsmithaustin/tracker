@@ -34,8 +34,30 @@ echo "==> Project : $PROJECT"
 echo "==> Instance: $INSTANCE_NAME ($MACHINE_TYPE, $ZONE)"
 echo ""
 
-# 1. Reserve a static external IP (free while attached to a running instance)
-echo "[1/4] Reserving static external IP '$STATIC_IP_NAME'..."
+# 1. Enable required APIs
+echo "[1/5] Enabling required APIs..."
+gcloud services enable compute.googleapis.com artifactregistry.googleapis.com \
+  --project="$PROJECT" --quiet
+
+# 2. Set up Artifact Registry
+AR_REPO="tracker"
+AR_LOCATION="us-west1"
+echo "[2/5] Setting up Artifact Registry repository '$AR_REPO'..."
+if gcloud artifacts repositories describe "$AR_REPO" \
+    --location="$AR_LOCATION" --project="$PROJECT" &>/dev/null; then
+  echo "      (already exists, skipping)"
+else
+  gcloud artifacts repositories create "$AR_REPO" \
+    --repository-format=docker \
+    --location="$AR_LOCATION" \
+    --project="$PROJECT" \
+    --description="Tracker Docker images"
+fi
+echo "      Configuring local Docker auth..."
+gcloud auth configure-docker "${AR_LOCATION}-docker.pkg.dev" --quiet
+
+# 3. Reserve a static external IP (free while attached to a running instance)
+echo "[3/5] Reserving static external IP '$STATIC_IP_NAME'..."
 if gcloud compute addresses describe "$STATIC_IP_NAME" --region="$REGION" --project="$PROJECT" &>/dev/null; then
   echo "      (already exists, skipping)"
 else
@@ -50,8 +72,8 @@ STATIC_IP=$(gcloud compute addresses describe "$STATIC_IP_NAME" \
   --format="value(address)")
 echo "      IP: $STATIC_IP"
 
-# 2. Create the VM
-echo "[2/4] Creating instance '$INSTANCE_NAME'..."
+# 4. Create the VM
+echo "[4/5] Creating instance '$INSTANCE_NAME'..."
 if gcloud compute instances describe "$INSTANCE_NAME" --zone="$ZONE" --project="$PROJECT" &>/dev/null; then
   echo "      (already exists, skipping)"
 else
@@ -68,8 +90,8 @@ else
     --metadata="enable-oslogin=TRUE"
 fi
 
-# 3. Open firewall ports
-echo "[3/4] Creating firewall rule '$FIREWALL_RULE_NAME' (ports 80, 443, 8080)..."
+# 5. Open firewall ports
+echo "[5/5] Creating firewall rule '$FIREWALL_RULE_NAME' (ports 80, 443, 8080)..."
 if gcloud compute firewall-rules describe "$FIREWALL_RULE_NAME" --project="$PROJECT" &>/dev/null; then
   echo "      (already exists, skipping)"
 else
@@ -83,19 +105,21 @@ else
     --description="Allow HTTP/HTTPS/8080 traffic for the trip tracker"
 fi
 
-# 4. Print next steps
 echo ""
-echo "[4/4] Done."
+echo "Done."
 echo ""
 echo "Next steps:"
-echo "  1. Copy your .env file to the VM:"
-echo "       gcloud compute scp .env $INSTANCE_NAME:~ --zone=$ZONE --project=$PROJECT"
+echo "  1. Add PROJECT_ID to your .env file:"
+echo "       echo 'PROJECT_ID=$PROJECT' >> .env"
 echo ""
-echo "  2. SSH in and run the setup script:"
+echo "  2. Build and push images to Artifact Registry:"
+echo "       make push"
+echo ""
+echo "  3. Copy your .env to the VM and run setup:"
+echo "       gcloud compute scp .env $INSTANCE_NAME:~ --zone=$ZONE --project=$PROJECT"
 echo "       gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --project=$PROJECT"
 echo "       # then on the VM:"
 echo "       bash <(curl -fsSL https://raw.githubusercontent.com/billsmithaustin/tracker/main/scripts/setup-vm.sh)"
-echo "       # or copy the script up the same way you did .env and run it directly."
 echo ""
-echo "  3. The tracker will be at: http://$STATIC_IP:8080"
+echo "  4. The tracker will be at: http://$STATIC_IP:8080"
 echo "     (see DEPLOY_OPTIONS.md for custom domain + SSL steps)"

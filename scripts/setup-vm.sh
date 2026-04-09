@@ -66,10 +66,13 @@ else
 fi
 
 echo ""
-echo "==> Starting the tracker (docker compose up)..."
-# Run docker with sg so the group membership is active in this session
-# even if the usermod above was just applied.
-sg docker -c "docker compose -f $APP_DIR/docker-compose.yml up -d --build"
+echo "==> Authenticating Docker with Artifact Registry..."
+gcloud auth configure-docker us-west1-docker.pkg.dev --quiet
+
+echo ""
+echo "==> Pulling images and starting the tracker..."
+# Use sg so the docker group membership is active even if usermod was just applied.
+sg docker -c "docker compose -f $APP_DIR/docker-compose.yml pull && docker compose -f $APP_DIR/docker-compose.yml up -d --no-build"
 
 echo ""
 echo "==> Enabling Docker to start on boot..."

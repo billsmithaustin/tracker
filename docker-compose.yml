@@ -1,6 +1,7 @@
 services:
   api:
     build: ./api
+    image: us-west1-docker.pkg.dev/${PROJECT_ID}/tracker/api:latest
     restart: unless-stopped
     environment:
       - CHECKIN_PASSWORD=${CHECKIN_PASSWORD:-changeme}
@@ -12,6 +13,7 @@ services:
 
   frontend:
     build: ./frontend
+    image: us-west1-docker.pkg.dev/${PROJECT_ID}/tracker/frontend:latest
     restart: unless-stopped
     networks:
       - tracker
