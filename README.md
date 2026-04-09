@@ -18,7 +18,7 @@ make gpx                # regenerate route-data.js from GPX files
 
 Google's always-free tier includes one `e2-micro` VM (1 vCPU, 1 GB RAM, 30 GB disk) in `us-west1`, `us-central1`, or `us-east1`. The existing Docker Compose stack runs on it unchanged.
 
-Docker images are built locally on your Mac and pushed to Google Artifact Registry, so the VM only pulls pre-built images — no compilation on the e2-micro.
+Docker images are cross-compiled locally on your Mac for `linux/amd64` and pushed to Google Artifact Registry, so the VM only pulls pre-built images — no compilation on the e2-micro. (`make up` still builds natively for your Mac.)
 
 ### Prerequisites
 
