@@ -1,4 +1,4 @@
-.PHONY: up down build logs reset gpx stamp provision push deploy
+.PHONY: up down build logs reset gpx stamp provision push deploy setup
 
 up: stamp ## Start all services (build if needed)
 	docker compose up --build
@@ -26,6 +26,8 @@ provision: ## Create GCE e2-micro VM, Artifact Registry repo, static IP, firewal
 
 PROJECT_ID := $(shell grep '^PROJECT_ID=' .env | cut -d= -f2)
 REGISTRY   := us-west1-docker.pkg.dev/$(PROJECT_ID)/tracker
+INSTANCE   := tracker
+ZONE       := us-west1-a
 
 push: ## Build images for linux/amd64 and push to Artifact Registry
 	docker buildx build --platform linux/amd64 -t $(REGISTRY)/api:latest --push ./api
@@ -33,3 +35,8 @@ push: ## Build images for linux/amd64 and push to Artifact Registry
 
 deploy: push ## Build, push images, then pull and restart on the GCE VM
 	./scripts/deploy.sh
+
+setup: push ## First-time VM setup: push images, copy .env, install Docker+SSL, start app
+	gcloud compute scp .env $(INSTANCE):~ --zone=$(ZONE) --project=$(PROJECT_ID)
+	gcloud compute scp scripts/setup-vm.sh $(INSTANCE):~ --zone=$(ZONE) --project=$(PROJECT_ID)
+	gcloud compute ssh $(INSTANCE) --zone=$(ZONE) --project=$(PROJECT_ID) --command="bash ~/setup-vm.sh"

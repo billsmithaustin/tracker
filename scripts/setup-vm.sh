@@ -7,6 +7,7 @@
 # Assumes:
 #   - Debian 12 (bookworm)
 #   - Your .env file is already in ~ (uploaded via gcloud compute scp)
+#   - If DOMAIN is set in .env, DNS A record already points to this VM's IP
 #
 # Usage (on the VM):
 #   bash setup-vm.sh
@@ -70,9 +71,46 @@ echo "==> Authenticating Docker with Artifact Registry..."
 gcloud auth configure-docker us-west1-docker.pkg.dev --quiet
 
 echo ""
-echo "==> Pulling images and starting the tracker..."
-# Use sg so the docker group membership is active even if usermod was just applied.
-sg docker -c "docker compose -f $APP_DIR/docker-compose.yml pull && docker compose -f $APP_DIR/docker-compose.yml up -d --no-build"
+echo "==> Pulling images..."
+sg docker -c "docker compose -f $APP_DIR/docker-compose.yml pull"
+
+# Read optional SSL config from .env
+DOMAIN=$(grep -E '^DOMAIN=' "$APP_DIR/.env" 2>/dev/null | cut -d= -f2 || true)
+CERTBOT_EMAIL=$(grep -E '^CERTBOT_EMAIL=' "$APP_DIR/.env" 2>/dev/null | cut -d= -f2 || true)
+
+if [[ -n "$DOMAIN" && -n "$CERTBOT_EMAIL" ]]; then
+  echo ""
+  echo "==> Installing Certbot for $DOMAIN..."
+  sudo apt-get install -y -qq python3 python3-venv libaugeas0
+  if [[ ! -f /usr/bin/certbot ]]; then
+    sudo python3 -m venv /opt/certbot/
+    sudo /opt/certbot/bin/pip install --upgrade pip --quiet
+    sudo /opt/certbot/bin/pip install certbot --quiet
+    sudo ln -s /opt/certbot/bin/certbot /usr/bin/certbot
+  fi
+
+  if [[ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]]; then
+    echo "==> Requesting SSL certificate (briefly starting standalone server on port 80)..."
+    sudo certbot certonly --standalone -d "$DOMAIN" \
+      --non-interactive --agree-tos -m "$CERTBOT_EMAIL"
+  else
+    echo "    Certificate already exists, skipping."
+  fi
+
+  echo ""
+  echo "==> Starting tracker with SSL..."
+  sg docker -c "docker compose -f $APP_DIR/docker-compose.yml -f $APP_DIR/docker-compose.prod.yml up -d --no-build"
+
+  echo ""
+  echo "==> Installing cert renewal cron job..."
+  CRON_CMD="0 3 * * * certbot renew --standalone --pre-hook \"docker compose -f $APP_DIR/docker-compose.yml -f $APP_DIR/docker-compose.prod.yml down\" --post-hook \"docker compose -f $APP_DIR/docker-compose.yml -f $APP_DIR/docker-compose.prod.yml up -d --no-build\""
+  (sudo crontab -l 2>/dev/null | grep -v certbot; echo "$CRON_CMD") | sudo crontab -
+  echo "    Renewal cron installed."
+else
+  echo ""
+  echo "==> Starting tracker (no DOMAIN set, HTTP only)..."
+  sg docker -c "docker compose -f $APP_DIR/docker-compose.yml up -d --no-build"
+fi
 
 echo ""
 echo "==> Enabling Docker to start on boot..."
@@ -81,7 +119,8 @@ sudo systemctl enable docker
 echo ""
 echo "==> Done! The tracker is running."
 EXTERNAL_IP=$(curl -sf "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip" -H "Metadata-Flavor: Google" || echo "<your-static-ip>")
-echo "    http://$EXTERNAL_IP:8080"
-echo ""
-echo "To tail logs: docker compose -C $APP_DIR logs -f"
-echo "To redeploy:  ./scripts/deploy.sh (from your local machine)"
+if [[ -n "$DOMAIN" ]]; then
+  echo "    https://$DOMAIN"
+else
+  echo "    http://$EXTERNAL_IP"
+fi
