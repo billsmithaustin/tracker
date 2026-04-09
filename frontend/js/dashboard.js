@@ -336,9 +336,9 @@ function renderHeader(latest, derivedMile, config) {
     ? Math.floor((Date.now() - startDate) / 86400000)
     : null;
   const dayEl = document.getElementById('hdr-day');
-  if (dayEl) dayEl.textContent = elapsed != null ? `t+${elapsed}d` : '—';
+  if (dayEl) dayEl.textContent = elapsed != null ? `${elapsed}d` : '—';
   const msElapsed = document.getElementById('ms-elapsed');
-  if (msElapsed) msElapsed.textContent = elapsed != null ? `T+${elapsed}d` : '—';
+  if (msElapsed) msElapsed.textContent = elapsed != null ? `${elapsed}d` : '—';
 
   // Location
   const locEl = document.getElementById('tel-location');

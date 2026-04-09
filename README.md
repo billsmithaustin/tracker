@@ -4,6 +4,22 @@ A cycling trip tracker/dashboard styled after the Artemis II mission tracker. NA
 
 **Route**: Yorktown, VA → Astoria, OR (~4,198 miles)
 
+## GPX files
+
+The route data (`frontend/js/route-data.js`) is pre-generated and checked in, so you don't need GPX files just to run the app. You only need them if you want to regenerate the route from scratch.
+
+The tool expects 12 GPX files from the **TransAmerica Trail** sold by [Adventure Cycling Association](https://www.adventurecycling.org/routes-and-maps/adventure-cycling-route-network/transamerica-trail/). Purchase the route, then copy the **Westbound Main** section files into the `gpx/` directory:
+
+```
+gpx/
+  TA_01_WB_Main_YYYY.gpx
+  TA_02_WB_Main_YYYY.gpx
+  ...
+  TA_12_WB_Main_YYYY.gpx
+```
+
+(`gpx/` is gitignored.) Then run `make gpx` to regenerate `route-data.js`.
+
 ## Running locally
 
 ```bash
@@ -11,7 +27,7 @@ cp .env.example .env    # set CHECKIN_PASSWORD
 make up                 # build and start → http://localhost:8080
 make down               # stop
 make reset              # stop and wipe all check-in data
-make gpx                # regenerate route-data.js from GPX files
+make gpx                # regenerate route-data.js from GPX files (see above)
 ```
 
 ## Deploying to Google Cloud (free tier)
@@ -41,32 +57,30 @@ This creates:
 - An `e2-micro` VM running Debian 12 in `us-west1-a`
 - A firewall rule opening ports 80, 443, and 8080
 
-**2. Add `PROJECT_ID` to your `.env`**
+The static IP is printed at the end. Note it for the next step.
+
+**2. Update your `.env`**
 
 ```bash
 echo "PROJECT_ID=$(gcloud config get-value project)" >> .env
 ```
 
-**3. Build and push images**
+To enable HTTPS, also add:
 
-```bash
-make push
+```
+DOMAIN=yourdomain.com
+CERTBOT_EMAIL=you@example.com
 ```
 
-**4. Upload your `.env` and run setup on the VM**
+If using a custom domain, add a DNS `A` record pointing to the static IP from step 1 and wait for it to propagate before continuing.
+
+**3. Run first-time setup**
 
 ```bash
-gcloud compute scp .env tracker:~ --zone=us-west1-a
-gcloud compute ssh tracker --zone=us-west1-a
+make setup
 ```
 
-Then on the VM:
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/billsmithaustin/tracker/main/scripts/setup-vm.sh)
-```
-
-The tracker will be running at `http://<static-ip>:8080`.
+This builds images on your Mac, pushes them to Artifact Registry, copies your `.env` to the VM, installs Docker, optionally obtains an SSL certificate via Let's Encrypt (if `DOMAIN` and `CERTBOT_EMAIL` are set), and starts the tracker.
 
 ### Deploying updates
 
@@ -77,13 +91,3 @@ make deploy
 ```
 
 This builds updated images on your Mac, pushes them to Artifact Registry, then SSHes into the VM to pull and restart.
-
-### Custom domain + SSL (optional)
-
-1. The static IP is printed at the end of `make provision`. Add an `A` record at your registrar pointing to it.
-2. SSH into the VM and install Certbot:
-   ```bash
-   sudo apt-get install -y certbot python3-certbot-nginx
-   sudo certbot --nginx -d yourdomain.com
-   ```
-3. Update `docker-compose.yml` to expose port 80 instead of 8080, then `make deploy`.
