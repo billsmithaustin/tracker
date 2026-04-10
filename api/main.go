@@ -61,6 +61,11 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	json.NewEncoder(w).Encode(v)
 }
 
+func internalError(w http.ResponseWriter, err error) {
+	log.Printf("internal error: %v", err)
+	writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+}
+
 func checkAuth(r *http.Request) bool {
 	return r.Header.Get("X-Checkin-Password") == os.Getenv("CHECKIN_PASSWORD")
 }

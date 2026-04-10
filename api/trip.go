@@ -9,7 +9,7 @@ import (
 func handleGetTrip(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query("SELECT key, value FROM trip_config")
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		internalError(w, err)
 		return
 	}
 	defer rows.Close()

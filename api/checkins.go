@@ -275,7 +275,7 @@ func computeStats(totalMilesRoute float64) stats {
 func handleListCheckins(w http.ResponseWriter, r *http.Request) {
 	checkins, err := queryCheckins("ORDER BY c.created_at DESC")
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		internalError(w, err)
 		return
 	}
 	if checkins == nil {
@@ -287,7 +287,7 @@ func handleListCheckins(w http.ResponseWriter, r *http.Request) {
 func handleLatestCheckin(w http.ResponseWriter, r *http.Request) {
 	checkins, err := queryCheckins("ORDER BY c.created_at DESC LIMIT 1")
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		internalError(w, err)
 		return
 	}
 
@@ -384,7 +384,7 @@ func handleCreateCheckin(w http.ResponseWriter, r *http.Request) {
 		ON CONFLICT(date) DO UPDATE SET is_rest_day = excluded.is_rest_day`,
 		date, restDayInt)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		internalError(w, err)
 		return
 	}
 
@@ -401,7 +401,7 @@ func handleCreateCheckin(w http.ResponseWriter, r *http.Request) {
 		b.PhotoURL, b.WeatherTempF, b.WeatherCondition, b.WeatherWindMph, b.WeatherWindDir,
 	)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		internalError(w, err)
 		return
 	}
 	checkinID, _ := result.LastInsertId()
@@ -427,7 +427,7 @@ func handleCreateCheckin(w http.ResponseWriter, r *http.Request) {
 		b.TotalMilesOverride, b.Note,
 	)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		internalError(w, err)
 		return
 	}
 
