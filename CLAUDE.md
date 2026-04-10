@@ -17,6 +17,14 @@ A cycling trip tracker/dashboard styled after the Artemis II mission tracker (ar
 - **Data**: SQLite database persisted in a named Docker volume (`api-data`)
 - **No local Node.js required** — everything runs in Docker
 
+## Testing
+
+Run all tests after making changes:
+
+```bash
+cd api && go test ./...
+```
+
 ## Running locally
 
 ```bash
