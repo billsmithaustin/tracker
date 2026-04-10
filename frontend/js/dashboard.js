@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initMap();
   initElevChart();
   fetchAndRender();
-  setInterval(fetchAndRender, POLL_MS);
+  // setInterval(fetchAndRender, POLL_MS);
 });
 
 // ── Map ───────────────────────────────────────────────────────────────────────
