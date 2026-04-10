@@ -82,6 +82,20 @@ make setup
 
 This builds images on your Mac, pushes them to Artifact Registry, copies your `.env` to the VM, installs Docker, optionally obtains an SSL certificate via Let's Encrypt (if `DOMAIN` and `CERTBOT_EMAIL` are set), and starts the tracker.
 
+### Google Cloud dependencies
+
+The production environment uses the following Google services:
+
+| Service | Purpose |
+|---|---|
+| **Compute Engine** (`e2-micro`) | VM running the Docker Compose stack |
+| **Artifact Registry** | Docker image registry (`us-west1`) |
+| **Cloud Static IP** | Fixed external IP attached to the VM |
+| **Cloud Firewall** | Ingress rule opening ports 80, 443, 8080 |
+| **OS Login** | SSH access to the VM via `gcloud compute ssh` |
+
+The `e2-micro` VM, static IP (while attached), and 30 GB standard disk in `us-west1` all fall within Google Cloud's [always-free tier](https://cloud.google.com/free/docs/free-cloud-features#compute). Artifact Registry storage is billed but negligible for two small images.
+
 ### Deploying updates
 
 After making changes locally:
