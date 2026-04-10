@@ -546,9 +546,9 @@ header {
   text-align: center;
   font-size: 1rem;
   font-family: var(--mono);
-  color: #7a3030;
+  color: #ffffff;
   background: transparent;
-  border: 1px solid #4a2020;
+  border: 1px solid #803030;
   border-radius: 3px;
   cursor: pointer;
   flex-shrink: 0;

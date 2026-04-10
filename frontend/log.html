@@ -91,7 +91,9 @@ function updateAdminBtn() {
   }
 }
 
-async function deleteCheckin(id, location) {
+async function deleteCheckin(id) {
+  const c = allCheckins.find(x => x.id === id);
+  const location = c ? (c.town || c.state ? `${c.name ? c.name + ' · ' : ''}${c.town || ''}${c.state ? ', ' + c.state : ''}` : (c.name || '—')) : '—';
   if (!confirm(`Delete check-in: "${location}"?\n\nThis cannot be undone.`)) return;
   try {
     const res = await fetch(`${API}/checkins/${id}`, {
@@ -179,7 +181,7 @@ function renderPage(page) {
         : (townState || '—');
 
       const deleteBtn = adminPassword
-        ? `<button class="log-delete-btn" onclick="deleteCheckin(${c.id}, ${JSON.stringify(location)})" title="Delete check-in">×</button>`
+        ? `<button class="log-delete-btn" onclick="deleteCheckin(${c.id})" title="Delete check-in">×</button>`
         : '';
 
       return `
