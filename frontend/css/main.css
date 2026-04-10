@@ -475,7 +475,7 @@ header {
   padding-top: 2px;
 }
 
-.log-body {}
+.log-body { min-width: 0; }
 
 .log-header {
   display: flex;
