@@ -537,6 +537,30 @@ header {
   padding: 20px;
 }
 
+.log-delete-btn {
+  margin-left: auto;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  line-height: 18px;
+  text-align: center;
+  font-size: 1rem;
+  font-family: var(--mono);
+  color: #7a3030;
+  background: transparent;
+  border: 1px solid #4a2020;
+  border-radius: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.log-delete-btn:hover {
+  color: #ff6b6b;
+  border-color: #ff6b6b;
+  background: rgba(255, 50, 50, 0.1);
+}
+
 /* ── Mission log footer / full-log button ────────────────────────────────── */
 #log-footer {
   margin-top: 16px;

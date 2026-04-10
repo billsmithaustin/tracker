@@ -18,7 +18,8 @@
         <div class="subtitle">Yorktown, VA → Astoria, OR · 4,205 miles</div>
       </div>
     </div>
-    <div class="header-right">
+    <div class="header-right" style="display:flex;align-items:center;gap:0.75rem;">
+      <button id="admin-btn" class="log-more-btn" onclick="toggleAdmin()" style="white-space:nowrap;">Admin</button>
       <a href="/" class="log-more-btn" style="white-space:nowrap;">← Back to Tracker</a>
     </div>
   </header>
@@ -58,6 +59,62 @@ const API = '/api';
 const PER_PAGE = 20;
 let allCheckins = [];
 let currentPage = 1;
+let adminPassword = sessionStorage.getItem('adminPassword') || null;
+
+function toggleAdmin() {
+  if (adminPassword) {
+    // Lock: clear password and re-render
+    adminPassword = null;
+    sessionStorage.removeItem('adminPassword');
+    updateAdminBtn();
+    renderPage(currentPage);
+    return;
+  }
+  const pw = prompt('Enter check-in password to enable admin mode:');
+  if (!pw) return;
+  adminPassword = pw;
+  sessionStorage.setItem('adminPassword', pw);
+  updateAdminBtn();
+  renderPage(currentPage);
+}
+
+function updateAdminBtn() {
+  const btn = document.getElementById('admin-btn');
+  if (adminPassword) {
+    btn.textContent = 'Admin: ON';
+    btn.style.color = 'var(--accent)';
+    btn.style.borderColor = 'var(--accent)';
+  } else {
+    btn.textContent = 'Admin';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  }
+}
+
+async function deleteCheckin(id, location) {
+  if (!confirm(`Delete check-in: "${location}"?\n\nThis cannot be undone.`)) return;
+  try {
+    const res = await fetch(`${API}/checkins/${id}`, {
+      method: 'DELETE',
+      headers: { 'X-Checkin-Password': adminPassword },
+    });
+    if (res.status === 401) {
+      alert('Wrong password — admin mode disabled.');
+      adminPassword = null;
+      sessionStorage.removeItem('adminPassword');
+      updateAdminBtn();
+      renderPage(currentPage);
+      return;
+    }
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    allCheckins = allCheckins.filter(c => c.id !== id);
+    // Stay on current page unless it no longer exists
+    const totalPages = Math.max(1, Math.ceil(allCheckins.length / PER_PAGE));
+    renderPage(Math.min(currentPage, totalPages));
+  } catch (e) {
+    alert(`Delete failed: ${e.message}`);
+  }
+}
 
 // ── Helpers (duplicated from dashboard.js to keep this page self-contained) ─
 
@@ -121,6 +178,10 @@ function renderPage(page) {
         ? (townState ? `${c.name} · ${townState}` : c.name)
         : (townState || '—');
 
+      const deleteBtn = adminPassword
+        ? `<button class="log-delete-btn" onclick="deleteCheckin(${c.id}, ${JSON.stringify(location)})" title="Delete check-in">×</button>`
+        : '';
+
       return `
         <div class="log-entry">
           <div class="log-date">${fmtDate(c.date || c.created_at)}</div>
@@ -128,6 +189,7 @@ function renderPage(page) {
             <div class="log-header">
               <span class="log-location">${escHtml(location)}</span>
               ${badges.join('')}
+              ${deleteBtn}
             </div>
             ${stats.length ? `<div class="log-stats">${stats.join('')}</div>` : ''}
             ${c.note ? `<div class="log-note">${escHtml(c.note)}</div>` : ''}
@@ -184,6 +246,7 @@ async function load() {
 }
 
 load();
+updateAdminBtn();
 </script>
 </body>
 </html>
