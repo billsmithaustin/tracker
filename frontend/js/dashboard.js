@@ -1,7 +1,7 @@
 /* global L, Chart, ROUTE_WAYPOINTS, ROUTE_ELEVATION, ROUTE_SECTIONS, latLngForMile, currentSection, ROUTE_TOTAL_MILES */
 
 const API = '/api';
-const POLL_MS = 60_000;
+const POLL_MS = 30 * 60_000;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let map, riderMarker, elevChart;
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initMap();
   initElevChart();
   fetchAndRender();
-  // setInterval(fetchAndRender, POLL_MS);
+  setInterval(fetchAndRender, POLL_MS);
 });
 
 // ── Map ───────────────────────────────────────────────────────────────────────
