@@ -9,6 +9,11 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+const (
+	defaultRouteMiles    = 4205.0
+	defaultRouteMilesStr = "4205"
+)
+
 var db *sql.DB
 
 func initDB() {
@@ -83,7 +88,7 @@ func seedConfig() {
 	defaults := map[string]string{
 		"rider_name":        "Bill",
 		"start_date":        "2026-04-16",
-		"route_total_miles": "4205",
+		"route_total_miles": defaultRouteMilesStr,
 		"target_days":       "90",
 	}
 	for k, v := range defaults {

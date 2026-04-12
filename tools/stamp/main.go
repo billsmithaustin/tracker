@@ -16,7 +16,7 @@ func main() {
 		frontend = env
 	}
 
-	pages := []string{"index.html", "checkin.html"}
+	pages := []string{"index.html", "checkin.html", "log.html"}
 	// Matches href/src to a local (non-http) asset with optional existing ?v=...
 	assetRe := regexp.MustCompile(`(href|src)="(/[^"?]+\.(css|js))(?:\?v=[^"]*)?">`)
 

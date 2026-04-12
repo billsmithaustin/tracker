@@ -41,7 +41,6 @@ checkin() {
     echo "FAIL $code — $json"
     exit 1
   fi
-  sleep 7
 }
 
 PHOTOS_API="${BASE_URL}/api/photos"

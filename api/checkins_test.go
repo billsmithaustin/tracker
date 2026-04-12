@@ -48,31 +48,27 @@ func authedRequest(method, path string, body any) *http.Request {
 
 // ── ptr helpers ───────────────────────────────────────────────────────────────
 
-func TestPtrStr(t *testing.T) {
-	if ptrStr(sql.NullString{}) != nil {
-		t.Error("invalid NullString should return nil")
+func TestNullPtr(t *testing.T) {
+	if nullPtr(false, "") != nil {
+		t.Error("invalid string should return nil")
 	}
-	s := ptrStr(sql.NullString{String: "hello", Valid: true})
+	s := nullPtr(true, "hello")
 	if s == nil || *s != "hello" {
 		t.Errorf("expected %q, got %v", "hello", s)
 	}
-}
 
-func TestPtrF64(t *testing.T) {
-	if ptrF64(sql.NullFloat64{}) != nil {
-		t.Error("invalid NullFloat64 should return nil")
+	if nullPtr(false, 0.0) != nil {
+		t.Error("invalid float64 should return nil")
 	}
-	f := ptrF64(sql.NullFloat64{Float64: 3.14, Valid: true})
+	f := nullPtr(true, 3.14)
 	if f == nil || *f != 3.14 {
 		t.Errorf("expected 3.14, got %v", f)
 	}
-}
 
-func TestPtrI64(t *testing.T) {
-	if ptrI64(sql.NullInt64{}) != nil {
-		t.Error("invalid NullInt64 should return nil")
+	if nullPtr(false, int64(0)) != nil {
+		t.Error("invalid int64 should return nil")
 	}
-	i := ptrI64(sql.NullInt64{Int64: 42, Valid: true})
+	i := nullPtr(true, int64(42))
 	if i == nil || *i != 42 {
 		t.Errorf("expected 42, got %v", i)
 	}

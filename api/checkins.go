@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -63,23 +64,10 @@ const checkinSQL = `
 
 // ── Nullable scanning helpers ─────────────────────────────────────────────────
 
-func ptrStr(s sql.NullString) *string {
-	if s.Valid {
-		return &s.String
-	}
-	return nil
-}
-
-func ptrF64(f sql.NullFloat64) *float64 {
-	if f.Valid {
-		return &f.Float64
-	}
-	return nil
-}
-
-func ptrI64(i sql.NullInt64) *int64 {
-	if i.Valid {
-		return &i.Int64
+// nullPtr returns a pointer to val when valid is true, otherwise nil.
+func nullPtr[T any](valid bool, val T) *T {
+	if valid {
+		return &val
 	}
 	return nil
 }
@@ -121,27 +109,27 @@ func scanCheckin(rows *sql.Rows) (Checkin, error) {
 	if err != nil {
 		return c, err
 	}
-	c.Lat = ptrF64(lat)
-	c.Lng = ptrF64(lng)
-	c.Town = ptrStr(town)
-	c.State = ptrStr(state)
-	c.Name = ptrStr(name)
-	c.ElevationFt = ptrI64(elevFt)
-	c.MileMarker = ptrF64(mileMarker)
-	c.PhotoURL = ptrStr(photoURL)
-	c.WeatherTempF = ptrF64(weatherTempF)
-	c.WeatherCondition = ptrStr(weatherCondition)
-	c.WeatherWindMph = ptrF64(weatherWindMph)
-	c.WeatherWindDir = ptrStr(weatherWindDir)
+	c.Lat = nullPtr(lat.Valid, lat.Float64)
+	c.Lng = nullPtr(lng.Valid, lng.Float64)
+	c.Town = nullPtr(town.Valid, town.String)
+	c.State = nullPtr(state.Valid, state.String)
+	c.Name = nullPtr(name.Valid, name.String)
+	c.ElevationFt = nullPtr(elevFt.Valid, elevFt.Int64)
+	c.MileMarker = nullPtr(mileMarker.Valid, mileMarker.Float64)
+	c.PhotoURL = nullPtr(photoURL.Valid, photoURL.String)
+	c.WeatherTempF = nullPtr(weatherTempF.Valid, weatherTempF.Float64)
+	c.WeatherCondition = nullPtr(weatherCondition.Valid, weatherCondition.String)
+	c.WeatherWindMph = nullPtr(weatherWindMph.Valid, weatherWindMph.Float64)
+	c.WeatherWindDir = nullPtr(weatherWindDir.Valid, weatherWindDir.String)
 	c.IsRestDay = ptrBool(isRestDayRaw)
-	c.Note = ptrStr(dsNote)
-	c.MilesToday = ptrF64(dsMiles)
-	c.ElevGainToday = ptrI64(dsGain)
-	c.ElevLossToday = ptrI64(dsLoss)
-	c.MovingTimeMinutes = ptrI64(dsMoving)
-	c.AvgSpeedToday = ptrF64(dsAvgSpeed)
-	c.LodgingType = ptrStr(dsLodging)
-	c.TotalMilesOverride = ptrF64(dsOverride)
+	c.Note = nullPtr(dsNote.Valid, dsNote.String)
+	c.MilesToday = nullPtr(dsMiles.Valid, dsMiles.Float64)
+	c.ElevGainToday = nullPtr(dsGain.Valid, dsGain.Int64)
+	c.ElevLossToday = nullPtr(dsLoss.Valid, dsLoss.Int64)
+	c.MovingTimeMinutes = nullPtr(dsMoving.Valid, dsMoving.Int64)
+	c.AvgSpeedToday = nullPtr(dsAvgSpeed.Valid, dsAvgSpeed.Float64)
+	c.LodgingType = nullPtr(dsLodging.Valid, dsLodging.String)
+	c.TotalMilesOverride = nullPtr(dsOverride.Valid, dsOverride.Float64)
 	return c, nil
 }
 
@@ -193,7 +181,11 @@ type dayStatRow struct {
 func computeStats(totalMilesRoute float64) stats {
 	// Close rows explicitly before opening the next query — with MaxOpenConns(1)
 	// a defer would hold the connection open and deadlock the second Query call.
-	dayRows, _ := db.Query("SELECT id, is_rest_day FROM days")
+	dayRows, err := db.Query("SELECT id, is_rest_day FROM days")
+	if err != nil {
+		log.Printf("computeStats days: %v", err)
+		return stats{}
+	}
 	var days []dayRow
 	for dayRows.Next() {
 		var d dayRow
@@ -202,7 +194,11 @@ func computeStats(totalMilesRoute float64) stats {
 	}
 	dayRows.Close()
 
-	dsRows, _ := db.Query("SELECT day_id, miles, elevation_gain, lodging_type FROM day_stats")
+	dsRows, err := db.Query("SELECT day_id, miles, elevation_gain, lodging_type FROM day_stats")
+	if err != nil {
+		log.Printf("computeStats day_stats: %v", err)
+		return stats{}
+	}
 	var dayStats []dayStatRow
 	for dsRows.Next() {
 		var ds dayStatRow
@@ -296,17 +292,13 @@ func handleLatestCheckin(w http.ResponseWriter, r *http.Request) {
 		latest = checkins[0]
 	}
 
-	// Close before computeStats opens its own queries on the same connection.
-	configRows, _ := db.Query("SELECT key, value FROM trip_config")
-	config := make(map[string]string)
-	for configRows.Next() {
-		var k, v string
-		configRows.Scan(&k, &v)
-		config[k] = v
+	config, err := getConfig()
+	if err != nil {
+		internalError(w, err)
+		return
 	}
-	configRows.Close()
 
-	totalRoute := 4205.0
+	totalRoute := defaultRouteMiles
 	if v, ok := config["route_total_miles"]; ok {
 		if f, err := strconv.ParseFloat(v, 64); err == nil {
 			totalRoute = f
@@ -346,6 +338,60 @@ type checkinRequest struct {
 	WeatherWindDir     *string  `json:"weather_wind_dir"`
 }
 
+func upsertDay(date string, isRestDay bool) (int64, error) {
+	restDayInt := 0
+	if isRestDay {
+		restDayInt = 1
+	}
+	_, err := db.Exec(`INSERT INTO days (date, is_rest_day) VALUES (?, ?)
+		ON CONFLICT(date) DO UPDATE SET is_rest_day = excluded.is_rest_day`,
+		date, restDayInt)
+	if err != nil {
+		return 0, err
+	}
+	var dayID int64
+	err = db.QueryRow("SELECT id FROM days WHERE date = ?", date).Scan(&dayID)
+	return dayID, err
+}
+
+func insertCheckin(dayID int64, ts string, b checkinRequest) (int64, error) {
+	result, err := db.Exec(`INSERT INTO checkins (
+		day_id, created_at, lat, lng, name, town, state, mile_marker, elevation_ft,
+		photo_url, weather_temp_f, weather_condition, weather_wind_mph, weather_wind_dir
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		dayID, ts,
+		b.Lat, b.Lng, b.Name, b.Town, b.State, b.MileMarker, b.ElevationFt,
+		b.PhotoURL, b.WeatherTempF, b.WeatherCondition, b.WeatherWindMph, b.WeatherWindDir,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.LastInsertId()
+}
+
+func upsertDayStats(dayID, checkinID int64, b checkinRequest) error {
+	_, err := db.Exec(`INSERT INTO day_stats (
+		day_id, checkin_id, miles, elevation_gain, elevation_loss,
+		moving_time_minutes, avg_speed, lodging_type, total_miles_override, note
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	ON CONFLICT(day_id) DO UPDATE SET
+		checkin_id           = excluded.checkin_id,
+		miles                = excluded.miles,
+		elevation_gain       = excluded.elevation_gain,
+		elevation_loss       = excluded.elevation_loss,
+		moving_time_minutes  = excluded.moving_time_minutes,
+		avg_speed            = excluded.avg_speed,
+		lodging_type         = excluded.lodging_type,
+		total_miles_override = excluded.total_miles_override,
+		note                 = excluded.note`,
+		dayID, checkinID,
+		b.MilesToday, b.ElevGainToday, b.ElevLossToday,
+		b.MovingTimeMinutes, b.AvgSpeedToday, b.LodgingType,
+		b.TotalMilesOverride, b.Note,
+	)
+	return err
+}
+
 func handleCreateCheckin(w http.ResponseWriter, r *http.Request) {
 	if !checkAuth(r) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
@@ -372,61 +418,20 @@ func handleCreateCheckin(w http.ResponseWriter, r *http.Request) {
 	if ts == "" {
 		ts = time.Now().UTC().Format(time.RFC3339)
 	}
-	date := ts[:10] // YYYY-MM-DD
 
-	restDayInt := 0
-	if b.IsRestDay {
-		restDayInt = 1
-	}
-
-	// Upsert day
-	_, err := db.Exec(`INSERT INTO days (date, is_rest_day) VALUES (?, ?)
-		ON CONFLICT(date) DO UPDATE SET is_rest_day = excluded.is_rest_day`,
-		date, restDayInt)
+	dayID, err := upsertDay(ts[:10], b.IsRestDay)
 	if err != nil {
 		internalError(w, err)
 		return
 	}
 
-	var dayID int64
-	db.QueryRow("SELECT id FROM days WHERE date = ?", date).Scan(&dayID)
-
-	// Insert checkin
-	result, err := db.Exec(`INSERT INTO checkins (
-		day_id, created_at, lat, lng, name, town, state, mile_marker, elevation_ft,
-		photo_url, weather_temp_f, weather_condition, weather_wind_mph, weather_wind_dir
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		dayID, ts,
-		b.Lat, b.Lng, b.Name, b.Town, b.State, b.MileMarker, b.ElevationFt,
-		b.PhotoURL, b.WeatherTempF, b.WeatherCondition, b.WeatherWindMph, b.WeatherWindDir,
-	)
+	checkinID, err := insertCheckin(dayID, ts, b)
 	if err != nil {
 		internalError(w, err)
 		return
 	}
-	checkinID, _ := result.LastInsertId()
 
-	// Upsert day_stats
-	_, err = db.Exec(`INSERT INTO day_stats (
-		day_id, checkin_id, miles, elevation_gain, elevation_loss,
-		moving_time_minutes, avg_speed, lodging_type, total_miles_override, note
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	ON CONFLICT(day_id) DO UPDATE SET
-		checkin_id           = excluded.checkin_id,
-		miles                = excluded.miles,
-		elevation_gain       = excluded.elevation_gain,
-		elevation_loss       = excluded.elevation_loss,
-		moving_time_minutes  = excluded.moving_time_minutes,
-		avg_speed            = excluded.avg_speed,
-		lodging_type         = excluded.lodging_type,
-		total_miles_override = excluded.total_miles_override,
-		note                 = excluded.note`,
-		dayID, checkinID,
-		b.MilesToday, b.ElevGainToday, b.ElevLossToday,
-		b.MovingTimeMinutes, b.AvgSpeedToday, b.LodgingType,
-		b.TotalMilesOverride, b.Note,
-	)
-	if err != nil {
+	if err := upsertDayStats(dayID, checkinID, b); err != nil {
 		internalError(w, err)
 		return
 	}

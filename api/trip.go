@@ -6,19 +6,26 @@ import (
 	"net/http"
 )
 
-func handleGetTrip(w http.ResponseWriter, r *http.Request) {
+func getConfig() (map[string]string, error) {
 	rows, err := db.Query("SELECT key, value FROM trip_config")
 	if err != nil {
-		internalError(w, err)
-		return
+		return nil, err
 	}
 	defer rows.Close()
-
 	config := make(map[string]string)
 	for rows.Next() {
 		var k, v string
 		rows.Scan(&k, &v)
 		config[k] = v
+	}
+	return config, rows.Err()
+}
+
+func handleGetTrip(w http.ResponseWriter, r *http.Request) {
+	config, err := getConfig()
+	if err != nil {
+		internalError(w, err)
+		return
 	}
 	writeJSON(w, http.StatusOK, config)
 }
