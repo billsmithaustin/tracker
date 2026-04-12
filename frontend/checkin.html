@@ -160,10 +160,6 @@
           <input type="file" id="photo-file-input" accept="image/*" style="display:none">
           <span id="photo-upload-status"></span>
         </div>
-        <label style="margin-top:8px">
-          <span class="field-label">or paste URL</span>
-          <input type="url" id="f-photo" name="photo_url" placeholder="https://…">
-        </label>
         <div id="photo-preview-wrap" style="display:none;margin-top:10px">
           <img id="photo-preview" src="" alt="Photo preview" style="max-width:100%;border-radius:8px;border:1.5px solid var(--border)">
         </div>
@@ -278,7 +274,7 @@ document.getElementById('checkin-form').addEventListener('submit', async e => {
   const body = {};
   for (const [k, v] of fd.entries()) {
     if (v === '' || v === null) continue;
-    body[k] = isNaN(v) || v === '' ? v : (k === 'name' || k === 'town' || k === 'state' || k === 'lodging_type' || k === 'note' || k === 'photo_url' || k === 'weather_condition' || k === 'created_at' ? v : Number(v));
+    body[k] = isNaN(v) || v === '' ? v : (k === 'name' || k === 'town' || k === 'state' || k === 'lodging_type' || k === 'note' || k === 'weather_condition' || k === 'created_at' ? v : Number(v));
   }
   if (body.is_rest_day !== undefined) body.is_rest_day = body.is_rest_day === 1 || body.is_rest_day === '1';
   if (body.lng != null) body.lng = -Math.abs(body.lng);
@@ -358,15 +354,9 @@ document.getElementById('photo-file-input').addEventListener('change', e => {
   // Show local preview immediately; actual upload happens on form submit
   status.textContent = `${file.name} ready`;
   status.className = 'ok';
-  document.getElementById('f-photo').value = ''; // clear any pasted URL
   const reader = new FileReader();
   reader.onload = ev => showPhotoPreview(ev.target.result);
   reader.readAsDataURL(file);
-});
-
-// Show preview whenever the URL field changes
-document.getElementById('f-photo').addEventListener('input', e => {
-  showPhotoPreview(e.target.value.trim());
 });
 
 function showPhotoPreview(url) {
