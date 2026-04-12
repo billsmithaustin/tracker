@@ -869,6 +869,10 @@ footer {
   #main-grid { grid-template-columns: 1fr; }
   #sidebar { max-height: none; }
   #map { min-height: 300px; }
+  .leaflet-control-zoom-in,
+  .leaflet-touch .leaflet-control-zoom-in,
+  .leaflet-control-zoom-out,
+  .leaflet-touch .leaflet-control-zoom-out { display: none; }
   #cumulative-wrap .cum-stat:nth-child(n+5) { display: none; }
 
   /* Hide header stats on mobile; mission-status bar covers them */
