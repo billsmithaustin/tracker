@@ -123,10 +123,23 @@ function initMap() {
   const LayerPanel = L.Control.extend({
     onAdd() {
       const panel = L.DomUtil.create('div', 'layer-panel');
-      panel.innerHTML = '<div class="layer-panel-title">LAYERS</div>';
+
+      // Collapsible title button
+      const titleBtn = L.DomUtil.create('button', 'layer-panel-title', panel);
+      titleBtn.innerHTML = 'LAYERS <span class="layer-chevron">&#9660;</span>';
+
+      const rowsWrap = L.DomUtil.create('div', 'layer-rows', panel);
+
+      // Default to collapsed on narrow screens
+      if (window.innerWidth <= 768) {
+        panel.classList.add('collapsed');
+      }
+
+      L.DomEvent.on(titleBtn, 'click', L.DomEvent.stopPropagation)
+                .on(titleBtn, 'click', () => panel.classList.toggle('collapsed'));
 
       for (const def of LAYER_DEFS) {
-        const row = L.DomUtil.create('div', 'layer-row', panel);
+        const row = L.DomUtil.create('div', 'layer-row', rowsWrap);
         const btn = L.DomUtil.create('button', 'layer-btn', row);
         btn.dataset.key = def.key;
         btn.innerHTML = `<span class="layer-dot" style="background:${def.color}"></span>${def.label}`;
