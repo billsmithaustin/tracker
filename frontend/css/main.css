@@ -686,6 +686,7 @@ footer {
   border: 2px solid rgba(255,255,255,0.75);
 }
 
+.stop-marker-town      { background: #7abcd8; box-shadow: 0 0 4px rgba(122,188,216,0.5); }
 .coop-marker           { background: #ff9d00; box-shadow: 0 0 5px rgba(255,157,  0,0.6); }
 .stop-marker-campsite  { background: #27ae60; box-shadow: 0 0 5px rgba( 39,174, 96,0.6); }
 .stop-marker-lodging   { background: #9b59b6; box-shadow: 0 0 5px rgba(155, 89,182,0.6); }

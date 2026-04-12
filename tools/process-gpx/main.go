@@ -59,6 +59,14 @@ type stop struct {
 	Desc string  `json:"desc,omitempty"`
 }
 
+// ── Town ──────────────────────────────────────────────────────────────────────
+
+type town struct {
+	Lat  float64 `json:"lat"`
+	Lng  float64 `json:"lng"`
+	Name string  `json:"name"`
+}
+
 // cmtToCategory maps GPX <cmt> values to display categories.
 var cmtToCategory = map[string]string{
 	"camping":  "campsite",
@@ -406,9 +414,41 @@ func main() {
 	}
 	fmt.Printf("  %-12s %d\n", "total:", len(stops))
 
+	// ── Extract town waypoints (geocache category) ────────────────────────────
+	seenTowns := make(map[string]bool)
+	var towns []town
+
+	for _, w := range rawWpts {
+		if w.Cmt != "geocache" {
+			continue
+		}
+		name := cleanName(w.Name)
+		if name == "" {
+			continue
+		}
+		key := fmt.Sprintf("%s|%.3f,%.3f", name, w.Lat, w.Lon)
+		if seenTowns[key] {
+			continue
+		}
+		seenTowns[key] = true
+
+		towns = append(towns, town{
+			Lat:  math.Round(w.Lat*10000) / 10000,
+			Lng:  math.Round(w.Lon*10000) / 10000,
+			Name: name,
+		})
+	}
+	fmt.Printf("Towns: %d\n", len(towns))
+
 	stopsJSON, err := json.MarshalIndent(stops, "  ", "  ")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error marshalling stops: %v\n", err)
+		os.Exit(1)
+	}
+
+	townsJSON, err := json.MarshalIndent(towns, "  ", "  ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error marshalling towns: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -417,8 +457,11 @@ func main() {
 			"// Source: Adventure Cycling Association GPX files\n"+
 			"// DO NOT EDIT — regenerate with: make gpx\n"+
 			"\n"+
-			"const ROUTE_STOPS = %s;\n",
+			"const ROUTE_STOPS = %s;\n"+
+			"\n"+
+			"const ROUTE_TOWNS = %s;\n",
 		"[\n  "+strings.TrimSpace(string(stopsJSON[1:len(stopsJSON)-1]))+"\n]",
+		"[\n  "+strings.TrimSpace(string(townsJSON[1:len(townsJSON)-1]))+"\n]",
 	)
 
 	if err := os.WriteFile(stopsFile, []byte(stopsOutput), 0644); err != nil {

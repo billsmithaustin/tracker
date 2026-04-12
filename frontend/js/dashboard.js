@@ -66,6 +66,7 @@ function initMap() {
 
   // ── Layer definitions ────────────────────────────────────────────────────
   const LAYER_DEFS = [
+    { key: 'towns',     label: 'Towns',        color: '#7abcd8', markerClass: 'stop-marker-town'      },
     { key: 'campsite',  label: 'Campsites',   color: '#27ae60', markerClass: 'stop-marker-campsite'  },
     { key: 'lodging',   label: 'Lodging',      color: '#9b59b6', markerClass: 'stop-marker-lodging'   },
     { key: 'bike_shop', label: 'Bike Shops',   color: '#e67e22', markerClass: 'stop-marker-bike_shop' },
@@ -93,6 +94,17 @@ function initMap() {
     </div>`;
     L.marker([s.lat, s.lng], { icon }).bindPopup(popup, { className: 'stop-popup-wrap' })
       .addTo(layerGroups[s.cat]);
+  }
+
+  // Town layer (from GPX geocache waypoints)
+  for (const t of ROUTE_TOWNS) {
+    const icon = L.divIcon({ className: 'stop-marker-town', iconSize: [6, 6], iconAnchor: [3, 3] });
+    const popup = `<div class="stop-popup">
+      <div class="stop-popup-name" style="color:#7abcd8">${escHtml(t.name)}</div>
+      <div class="stop-popup-cat">Town</div>
+    </div>`;
+    L.marker([t.lat, t.lng], { icon }).bindPopup(popup, { className: 'stop-popup-wrap' })
+      .addTo(layerGroups['towns']);
   }
 
   // Bike co-op layer (from separate curated data)
