@@ -11,11 +11,11 @@ A cycling trip tracker/dashboard styled after the Artemis II mission tracker (ar
 
 ## Architecture
 
-- **API**: Node.js + Express + SQLite (`better-sqlite3`), runs on port 3000
+- **API**: Go + SQLite (`modernc.org/sqlite`), runs on port 3000
 - **Frontend**: vanilla HTML/CSS/JS served by nginx
-- **Reverse proxy**: nginx — locally on port 8080; in production (`docker-compose.prod.yml` overlay) on ports 80 (HTTP→HTTPS redirect) and 443 (SSL termination via Let's Encrypt certs mounted from the host)
-- **Data**: SQLite database persisted in a named Docker volume (`api-data`)
-- **No local Node.js required** — everything runs in Docker
+- **Reverse proxy**: nginx — locally on port 80; in production (`docker-compose.prod.yml` overlay) on ports 80 (HTTP→HTTPS redirect) and 443 (SSL termination via Let's Encrypt certs mounted from the host)
+- **Data**: SQLite database and uploaded photos persisted in a named Docker volume (`api-data`)
+- **No local Go required** — everything runs in Docker
 
 ## Testing
 
@@ -29,7 +29,7 @@ cd api && go test ./...
 
 ```bash
 cp .env.example .env          # set CHECKIN_PASSWORD
-make up                       # build and start (http://localhost:8080)
+make up                       # build and start (http://localhost)
 make gpx                      # regenerate route-data.js from GPX files
 make down                     # stop
 make reset                    # stop and wipe all check-in data
@@ -39,7 +39,8 @@ make reset                    # stop and wipe all check-in data
 
 - Submitted via `/checkin.html`, protected by `CHECKIN_PASSWORD`
 - Weather is auto-fetched from Open-Meteo (free, no API key) using the check-in coordinates
-- Fields: location (name, lat/lng/town/state, elevation), daily stats (miles, speed, elevation gain/loss, moving time), lodging type, rest day flag, note, optional photo URL
+- Fields: location (name, lat/lng/town/state, elevation), daily stats (miles, speed, elevation gain/loss, moving time), lodging type, rest day flag, note, optional photo
+- Photos are uploaded via `POST /api/photos` (multipart, `photo` field; returns `{"url": "/api/photos/<filename>"}`) and served back via `GET /api/photos/<filename>`; the returned URL is then stored as `photo_url` on the check-in
 - `name` is an optional free-text field for the specific place (campsite, hotel, host, etc.); displayed on the dashboard as `"Name · Town, State"` when present
 
 ## Design decisions

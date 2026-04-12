@@ -4,14 +4,21 @@
 # exercised at least once so you can visually confirm nothing is broken.
 #
 # Usage:
-#   CHECKIN_PASSWORD=secret ./tools/seed-checkins.sh
-#   CHECKIN_PASSWORD=secret BASE_URL=http://localhost:3000 ./tools/seed-checkins.sh
+#   ./tools/seed-checkins.sh
+#   BASE_URL=http://localhost:3000 ./tools/seed-checkins.sh
 
 set -euo pipefail
 
-BASE_URL="${BASE_URL:-http://localhost:8080}"
+# Load .env from the repo root (two levels up from tools/)
+ENV_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.env"
+if [[ -f "$ENV_FILE" ]]; then
+  # shellcheck disable=SC1090
+  set -a; source "$ENV_FILE"; set +a
+fi
+
+BASE_URL="${BASE_URL:-http://localhost}"
 API="${BASE_URL}/api/checkins"
-PW=changeme
+PW="${CHECKIN_PASSWORD:?No CHECKIN_PASSWORD set — add it to .env or export it}"
 
 checkin() {
   local label="$1"
@@ -34,6 +41,32 @@ checkin() {
     echo "FAIL $code — $json"
     exit 1
   fi
+  sleep 7
+}
+
+PHOTOS_API="${BASE_URL}/api/photos"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+upload_photo() {
+  local file="$1"
+  printf '%-45s' "  → uploading $(basename "$file")" >&2
+  local resp
+  resp=$(curl -s -w '\n%{http_code}' -X POST "$PHOTOS_API" \
+    -H "X-Checkin-Password: $PW" \
+    -F "photo=@$file")
+  local code
+  code=$(printf '%s' "$resp" | tail -n1)
+  local json
+  json=$(printf '%s' "$resp" | sed '$d')
+  if [[ "$code" == "201" ]]; then
+    local url
+    url=$(printf '%s' "$json" | grep -o '"url":"[^"]*"' | cut -d'"' -f4)
+    echo "OK ($url)" >&2
+    printf '%s' "$url"
+  else
+    echo "FAIL $code — $json" >&2
+    exit 1
+  fi
 }
 
 echo ""
@@ -47,29 +80,34 @@ echo "────────────────────────�
 #         (→ tel-time + log), elevation_gain_today (→ tel-gain + log),
 #         elevation_loss_today (→ tel-loss), lodging_type=camping
 #         (→ tel-lodging + cum-camped + log badge ⛺), weather_* (→ wx panel),
-#         note (→ log), is_rest_day=false (→ EN ROUTE pill + cum-days)
+#         note (→ log), is_rest_day=false (→ EN ROUTE pill + cum-days),
+#         photo_url from uploaded file (→ log-photo img tag)
+DAY1_PHOTO_URL=$(upload_photo "$SCRIPT_DIR/sample_photo.webp")
+DAY4_PHOTO_URL=$(upload_photo "$SCRIPT_DIR/sample_photo.webp")
+DAY10_PHOTO_URL=$(upload_photo "$SCRIPT_DIR/sample_photo.webp")
 checkin "Day 1 · Yorktown VA (camping, all fields)" \
-  '{
-    "created_at":           "2026-04-01T18:30:00.000Z",
-    "lat":                   37.2374,
-    "lng":                  -76.5169,
-    "name":                 "Riverwalk Campground",
-    "town":                 "Yorktown",
-    "state":                "VA",
-    "elevation_ft":          25,
-    "is_rest_day":           false,
-    "miles_today":           72.3,
-    "avg_speed_today":       13.2,
-    "moving_time_minutes":   329,
-    "elevation_gain_today":  1840,
-    "elevation_loss_today":  1620,
-    "lodging_type":         "camping",
-    "weather_temp_f":        68,
-    "weather_condition":    "Partly Cloudy",
-    "weather_wind_mph":      12,
-    "weather_wind_dir":     "SW",
-    "note":                 "First day! Dipped my rear wheel in the York River per tradition. Legs feeling strong. Colonial Parkway was beautiful — no traffic, smooth pavement."
-  }'
+  "{
+    \"created_at\":           \"2026-04-01T18:30:00.000Z\",
+    \"lat\":                   37.2374,
+    \"lng\":                  -76.5169,
+    \"name\":                 \"Riverwalk Campground\",
+    \"town\":                 \"Yorktown\",
+    \"state\":                \"VA\",
+    \"elevation_ft\":          25,
+    \"is_rest_day\":           false,
+    \"miles_today\":           72.3,
+    \"avg_speed_today\":       13.2,
+    \"moving_time_minutes\":   329,
+    \"elevation_gain_today\":  1840,
+    \"elevation_loss_today\":  1620,
+    \"lodging_type\":         \"camping\",
+    \"weather_temp_f\":        68,
+    \"weather_condition\":    \"Partly Cloudy\",
+    \"weather_wind_mph\":      12,
+    \"weather_wind_dir\":     \"SW\",
+    \"photo_url\":            \"${BASE_URL}${DAY1_PHOTO_URL}\",
+    \"note\":                 \"First day! Dipped my rear wheel in the York River per tradition. Legs feeling strong. Colonial Parkway was beautiful — no traffic, smooth pavement.\"
+  }"
 
 # ── Day 2 · Apr 2 · Roanoke, VA ──────────────────────────────────────────────
 # Covers: elevation_ft high value (mountain), warmshowers lodging
@@ -122,28 +160,28 @@ checkin "Day 3 · Berea KY (rest day, bnb)" \
 # Covers: hotel lodging (→ cum-indoor), photo_url (→ log-photo img tag),
 #         crossing into Illinois, supply weather manually
 checkin "Day 4 · Chester IL (hotel, photo_url)" \
-  '{
-    "created_at":           "2026-04-06T17:45:00.000Z",
-    "lat":                   37.9131,
-    "lng":                  -89.8223,
-    "name":                 "Popeye Inn",
-    "town":                 "Chester",
-    "state":                "IL",
-    "elevation_ft":          380,
-    "is_rest_day":           false,
-    "miles_today":           78.6,
-    "avg_speed_today":       14.1,
-    "moving_time_minutes":   334,
-    "elevation_gain_today":  980,
-    "elevation_loss_today":  1150,
-    "lodging_type":         "hotel",
-    "weather_temp_f":        74,
-    "weather_condition":    "Clear",
-    "weather_wind_mph":      15,
-    "weather_wind_dir":     "S",
-    "photo_url":            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Blois_-_Loire_River_-_panoramio.jpg/640px-Blois_-_Loire_River_-_panoramio.jpg",
-    "note":                 "Mississippi River crossing at Chester. Chester is the birthplace of Popeye the Sailor — the statue outside city hall is deeply earnest."
-  }'
+  "{
+    \"created_at\":           \"2026-04-06T17:45:00.000Z\",
+    \"lat\":                   37.9131,
+    \"lng\":                  -89.8223,
+    \"name\":                 \"Popeye Inn\",
+    \"town\":                 \"Chester\",
+    \"state\":                \"IL\",
+    \"elevation_ft\":          380,
+    \"is_rest_day\":           false,
+    \"miles_today\":           78.6,
+    \"avg_speed_today\":       14.1,
+    \"moving_time_minutes\":   334,
+    \"elevation_gain_today\":  980,
+    \"elevation_loss_today\":  1150,
+    \"lodging_type\":         \"hotel\",
+    \"weather_temp_f\":        74,
+    \"weather_condition\":    \"Clear\",
+    \"weather_wind_mph\":      15,
+    \"weather_wind_dir\":     \"S\",
+    \"photo_url\":            \"${BASE_URL}${DAY4_PHOTO_URL}\",
+    \"note\":                 \"Mississippi River crossing at Chester. Chester is the birthplace of Popeye the Sailor — the statue outside city hall is deeply earnest.\"
+  }"
 
 # ── Day 5 · Apr 8 · Farmington, MO ──────────────────────────────────────────
 # Covers: Missouri state, no photo (test that log renders fine without it),
@@ -273,31 +311,31 @@ checkin "Day 9 · Missoula MT (warmshowers, name+town displayed)" \
 #         name field without town (tests fallback rendering), photo_url second
 #         appearance in log
 checkin "Day 10 · Grangeville ID (camping, photo, almost there)" \
-  '{
-    "created_at":           "2026-05-01T17:30:00.000Z",
-    "lat":                   45.9259,
-    "lng":                 -116.1309,
-    "name":                 "City Campground",
-    "town":                 "Grangeville",
-    "state":                "ID",
-    "elevation_ft":          3386,
-    "is_rest_day":           false,
-    "miles_today":           83.7,
-    "avg_speed_today":       13.5,
-    "moving_time_minutes":   372,
-    "elevation_gain_today":  4150,
-    "elevation_loss_today":  7890,
-    "lodging_type":         "camping",
-    "weather_temp_f":        65,
-    "weather_condition":    "Clear",
-    "weather_wind_mph":      6,
-    "weather_wind_dir":     "W",
-    "photo_url":            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Snake_River_Birds_of_Prey_NCA.jpg/640px-Snake_River_Birds_of_Prey_NCA.jpg",
-    "note":                 "Lolo Pass was the last big climb. It is behind me. Descended the Lochsa canyon all morning, then ground back up to the Camas Prairie. Grangeville sits on the edge of the plateau — big views west. Oregon is close."
-  }'
+  "{
+    \"created_at\":           \"2026-05-01T17:30:00.000Z\",
+    \"lat\":                   45.9259,
+    \"lng\":                 -116.1309,
+    \"name\":                 \"City Campground\",
+    \"town\":                 \"Grangeville\",
+    \"state\":                \"ID\",
+    \"elevation_ft\":          3386,
+    \"is_rest_day\":           false,
+    \"miles_today\":           83.7,
+    \"avg_speed_today\":       13.5,
+    \"moving_time_minutes\":   372,
+    \"elevation_gain_today\":  4150,
+    \"elevation_loss_today\":  7890,
+    \"lodging_type\":         \"camping\",
+    \"weather_temp_f\":        65,
+    \"weather_condition\":    \"Clear\",
+    \"weather_wind_mph\":      6,
+    \"weather_wind_dir\":     \"W\",
+    \"photo_url\":            \"${BASE_URL}${DAY10_PHOTO_URL}\",
+    \"note\":                 \"Lolo Pass was the last big climb. It is behind me. Descended the Lochsa canyon all morning, then ground back up to the Camas Prairie. Grangeville sits on the edge of the plateau — big views west. Oregon is close.\"
+  }"
 
 echo "──────────────────────────────────────────────────"
-echo "Done. Open http://localhost:8080 to verify."
+echo "Done. Open http://localhost to verify."
 echo ""
 echo "Field coverage:"
 echo "  map marker + route segment  → lat/lng on every check-in"
@@ -312,7 +350,7 @@ echo "  tel-lodging / log badge     → lodging_type: camping, warmshowers,"
 echo "                                hotel, bnb, other"
 echo "  wx panel (temp/cond/wind)   → weather_* (all days)"
 echo "  log note                    → note (all days)"
-echo "  log photo                   → photo_url (days 4 + 10)  [day 10 = Grangeville ID]"
+echo "  log photo                   → photo_url (days 1, 4, 10)  [all uploaded files]"
 echo "  REST DAY pill + cum-rest    → is_rest_day=true (day 3)"
 echo "  EN ROUTE pill + cum-days    → is_rest_day=false (all others)"
 echo "  cum-camped                  → camping nights (days 1, 5, 8, 10)"
