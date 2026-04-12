@@ -234,7 +234,7 @@ function updateMapRider(mile, town, state, checkinLat, checkinLng) {
 }
 
 // ── Elevation chart ───────────────────────────────────────────────────────────
-const startEndMarkerPlugin = {
+const startFinishMarkerPlugin = {
   id: 'startEndMarkers',
   afterDraw(chart) {
     const { ctx, chartArea: { left, right, top } } = chart;
@@ -265,11 +265,11 @@ const startEndMarkerPlugin = {
       ctx.closePath(); ctx.fill();
     }
 
-    // END label → leftmost curve point (Astoria)
+    // FINISH label → leftmost curve point (Astoria)
     const endCurveY = chart.scales.y.getPixelForValue(data[0]);
     ctx.textAlign = 'left';
-    const endW = ctx.measureText('END').width;
-    ctx.fillText('END', left + 6, labelY);
+    const endW = ctx.measureText('FINISH').width;
+    ctx.fillText('FINISH', left + 6, labelY);
     drawArrowTo(left + 6 + endW / 2, labelY + 8, left, endCurveY);
 
     // START label → rightmost curve point (Yorktown)
@@ -303,7 +303,7 @@ function initElevChart() {
   const ctx = document.getElementById('elevation-chart-canvas').getContext('2d');
   elevChart = new Chart(ctx, {
     type: 'line',
-    plugins: [startEndMarkerPlugin],
+    plugins: [startFinishMarkerPlugin],
     data: { labels: [], datasets: [{
       data: [],
       borderColor: '#00d4ff',
