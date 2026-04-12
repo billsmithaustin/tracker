@@ -1,4 +1,4 @@
-/* global L, Chart, ROUTE_WAYPOINTS, ROUTE_ELEVATION, ROUTE_SECTIONS, latLngForMile, currentSection, ROUTE_TOTAL_MILES */
+/* global L, Chart, ROUTE_WAYPOINTS, ROUTE_ELEVATION, ROUTE_SECTIONS, latLngForMile, currentSection, ROUTE_TOTAL_MILES, BIKE_COOPS, ROUTE_STOPS */
 
 const API = '/api';
 const POLL_MS = 30 * 60_000;
@@ -63,6 +63,88 @@ function initMap() {
   // Start / finish labels
   addTextMarker(ROUTE_WAYPOINTS[0], '⬟ START (YORKTOWN)');
   addTextMarker(ROUTE_WAYPOINTS.at(-1), '⬟ FINISH (ASTORIA)');
+
+  // ── Layer definitions ────────────────────────────────────────────────────
+  const LAYER_DEFS = [
+    { key: 'campsite',  label: 'Campsites',   color: '#27ae60', markerClass: 'stop-marker-campsite'  },
+    { key: 'lodging',   label: 'Lodging',      color: '#9b59b6', markerClass: 'stop-marker-lodging'   },
+    { key: 'bike_shop', label: 'Bike Shops',   color: '#e67e22', markerClass: 'stop-marker-bike_shop' },
+    { key: 'library',   label: 'Libraries',    color: '#2980b9', markerClass: 'stop-marker-library'   },
+    { key: 'services',  label: 'Services',     color: '#f39c12', markerClass: 'stop-marker-services'  },
+    { key: 'food',      label: 'Food',         color: '#e74c3c', markerClass: 'stop-marker-food'      },
+    { key: 'caution',   label: 'Caution',      color: '#e74c3c', markerClass: 'stop-marker-caution'   },
+    { key: 'coop',      label: 'Bike Co-ops',  color: '#ff9d00', markerClass: 'coop-marker'           },
+  ];
+
+  // Build layer groups from ROUTE_STOPS
+  const layerGroups = {};
+  for (const def of LAYER_DEFS) {
+    layerGroups[def.key] = L.layerGroup();
+  }
+
+  for (const s of ROUTE_STOPS) {
+    const def = LAYER_DEFS.find(d => d.key === s.cat);
+    if (!def) continue;
+    const icon = L.divIcon({ className: def.markerClass, iconSize: [10, 10], iconAnchor: [5, 5] });
+    const popup = `<div class="stop-popup">
+      <div class="stop-popup-name" style="color:${def.color}">${escHtml(s.name)}</div>
+      <div class="stop-popup-cat">${def.label}</div>
+      ${s.desc ? `<div class="stop-popup-desc">${escHtml(s.desc)}</div>` : ''}
+    </div>`;
+    L.marker([s.lat, s.lng], { icon }).bindPopup(popup, { className: 'stop-popup-wrap' })
+      .addTo(layerGroups[s.cat]);
+  }
+
+  // Bike co-op layer (from separate curated data)
+  for (const c of BIKE_COOPS) {
+    const icon = L.divIcon({ className: 'coop-marker', iconSize: [10, 10], iconAnchor: [5, 5] });
+    const popup = `<div class="stop-popup">
+      <div class="stop-popup-name" style="color:#ff9d00">${escHtml(c.name)}</div>
+      <div class="stop-popup-cat">Bike Co-op · ${escHtml(c.town)}, ${escHtml(c.state)}</div>
+      <div class="stop-popup-desc"><a href="${c.url}" target="_blank" rel="noopener">Website →</a></div>
+    </div>`;
+    L.marker([c.lat, c.lng], { icon }).bindPopup(popup, { className: 'stop-popup-wrap' })
+      .addTo(layerGroups['coop']);
+  }
+
+  // ── Unified layer toggle panel ────────────────────────────────────────────
+  const LayerPanel = L.Control.extend({
+    onAdd() {
+      const panel = L.DomUtil.create('div', 'layer-panel');
+      panel.innerHTML = '<div class="layer-panel-title">LAYERS</div>';
+
+      for (const def of LAYER_DEFS) {
+        const row = L.DomUtil.create('div', 'layer-row', panel);
+        const btn = L.DomUtil.create('button', 'layer-btn', row);
+        btn.dataset.key = def.key;
+        btn.innerHTML = `<span class="layer-dot" style="background:${def.color}"></span>${def.label}`;
+        btn.title = `Toggle ${def.label}`;
+
+        L.DomEvent.on(btn, 'click', L.DomEvent.stopPropagation)
+                  .on(btn, 'click', () => {
+                    const active = map.hasLayer(layerGroups[def.key]);
+                    if (active) {
+                      map.removeLayer(layerGroups[def.key]);
+                      btn.classList.remove('active');
+                    } else {
+                      layerGroups[def.key].addTo(map);
+                      btn.classList.add('active');
+                    }
+                  });
+      }
+      return panel;
+    },
+    onRemove() {},
+  });
+  new LayerPanel({ position: 'topright' }).addTo(map);
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function mileForLatLng(lat, lng) {

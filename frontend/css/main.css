@@ -671,6 +671,127 @@ footer {
   border: 1px solid rgba(0,200,255,0.4);
 }
 
+/* ── Map stop markers (one class per category) ───────────────────────────── */
+.coop-marker,
+.stop-marker-campsite,
+.stop-marker-lodging,
+.stop-marker-bike_shop,
+.stop-marker-library,
+.stop-marker-services,
+.stop-marker-food,
+.stop-marker-caution {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.75);
+}
+
+.coop-marker           { background: #ff9d00; box-shadow: 0 0 5px rgba(255,157,  0,0.6); }
+.stop-marker-campsite  { background: #27ae60; box-shadow: 0 0 5px rgba( 39,174, 96,0.6); }
+.stop-marker-lodging   { background: #9b59b6; box-shadow: 0 0 5px rgba(155, 89,182,0.6); }
+.stop-marker-bike_shop { background: #e67e22; box-shadow: 0 0 5px rgba(230,126, 34,0.6); }
+.stop-marker-library   { background: #2980b9; box-shadow: 0 0 5px rgba( 41,128,185,0.6); }
+.stop-marker-services  { background: #f39c12; box-shadow: 0 0 5px rgba(243,156, 18,0.6); }
+.stop-marker-food      { background: #e74c3c; box-shadow: 0 0 5px rgba(231, 76, 60,0.6); }
+.stop-marker-caution   { background: #e74c3c; box-shadow: 0 0 5px rgba(231, 76, 60,0.8); border-color: #fff; }
+
+/* ── Layer toggle panel ──────────────────────────────────────────────────── */
+.layer-panel {
+  background: rgba(2, 8, 20, 0.94);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 0 4px;
+  min-width: 130px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+
+.layer-panel-title {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  color: var(--text-label);
+  padding: 0 10px 6px;
+  border-bottom: 1px solid rgba(0,210,255,0.15);
+  margin-bottom: 4px;
+}
+
+.layer-row { display: block; }
+
+.layer-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.12s, background 0.12s;
+  white-space: nowrap;
+}
+
+.layer-btn:hover  { background: rgba(0,210,255,0.06); color: var(--text); }
+.layer-btn.active { color: var(--text); }
+.layer-btn.active .layer-dot { box-shadow: 0 0 6px currentColor; }
+
+.layer-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  opacity: 0.45;
+  transition: opacity 0.12s;
+}
+
+.layer-btn.active .layer-dot { opacity: 1; }
+
+/* ── Stop popups ─────────────────────────────────────────────────────────── */
+.stop-popup-wrap .leaflet-popup-content-wrapper {
+  background: rgba(2, 8, 20, 0.97);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  color: var(--text);
+}
+
+.stop-popup-wrap .leaflet-popup-tip { background: rgba(2, 8, 20, 0.97); }
+.stop-popup-wrap .leaflet-popup-content { margin: 10px 14px; }
+
+.stop-popup-name {
+  font-family: var(--head);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.stop-popup-cat {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.stop-popup-desc {
+  font-size: 0.73rem;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.stop-popup-desc a {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.stop-popup-desc a:hover { text-decoration: underline; }
+
 /* ── Mission status bar ──────────────────────────────────────────────────── */
 #mission-status {
   display: flex;

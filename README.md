@@ -6,7 +6,7 @@ A cycling trip tracker/dashboard styled after the Artemis II mission tracker. NA
 
 ## GPX files
 
-The route data (`frontend/js/route-data.js`) is pre-generated and checked in, so you don't need GPX files just to run the app. You only need them if you want to regenerate the route from scratch.
+The route data (`frontend/js/route-data.js`) is generated from licensed GPX files and is not checked in. Before running the app, you must generate it.
 
 The tool expects 12 GPX files from the **TransAmerica Trail** sold by [Adventure Cycling Association](https://www.adventurecycling.org/routes-and-maps/adventure-cycling-route-network/transamerica-trail/). Purchase the route, then copy the **Westbound Main** section files into the `gpx/` directory:
 
@@ -18,7 +18,7 @@ gpx/
   TA_12_WB_Main_YYYY.gpx
 ```
 
-(`gpx/` is gitignored.) Then run `make gpx` to regenerate `route-data.js`.
+(`gpx/` and `route-data.js` are both gitignored.) `make up` will generate `route-data.js` automatically on first run.
 
 ## Running locally
 
@@ -28,7 +28,12 @@ make up                 # build and start → http://localhost:8080
 make down               # stop
 make reset              # stop and wipe all check-in data
 make gpx                # regenerate route-data.js from GPX files (see above)
+make vendor             # download/update vendored JS libraries (Leaflet, Chart.js)
 ```
+
+### Vendored dependencies
+
+Leaflet, Chart.js, and chartjs-plugin-annotation are served from `frontend/vendor/` rather than a CDN. To upgrade a library, edit the version variables at the top of `scripts/update-vendor.sh` and run `make vendor`.
 
 ## Deploying to Google Cloud (free tier)
 
