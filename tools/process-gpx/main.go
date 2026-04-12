@@ -89,6 +89,27 @@ func cleanName(raw string) string {
 	return raw
 }
 
+// serviceAbbreviations expands known Adventure Cycling service codes in waypoint names.
+var serviceAbbreviations = map[string]string{
+	"CG":  "Campground",
+	"COC": "Cyclist only camping",
+	"CS":  "Convenience store",
+	"G":   "Grocery",
+	"M":   "Hotel/motel/cabin",
+	"R":   "Restaurant",
+}
+
+func expandServiceCodes(name string) string {
+	parts := strings.Split(name, ",")
+	for i, p := range parts {
+		p = strings.TrimSpace(p)
+		if expanded, ok := serviceAbbreviations[p]; ok {
+			parts[i] = expanded
+		}
+	}
+	return strings.Join(parts, ",")
+}
+
 // ── Haversine distance (meters) ───────────────────────────────────────────────
 
 func haversine(lat1, lng1, lat2, lng2 float64) float64 {
@@ -383,7 +404,7 @@ func main() {
 		if !ok {
 			continue // skip uncategorized types
 		}
-		name := cleanName(w.Name)
+		name := expandServiceCodes(cleanName(w.Name))
 		if name == "" {
 			continue
 		}
