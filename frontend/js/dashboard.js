@@ -484,11 +484,8 @@ function renderProgress(derivedMile) {
 function renderTelemetry(latest, derivedMile, stats) {
   if (!latest) return;
 
-  const section = currentSection(derivedMile);
   document.getElementById('map-location-name').textContent =
     latest.town ? `${latest.town}, ${latest.state}` : (latest.state || '—');
-  document.getElementById('map-section-name').textContent =
-    section ? `Section: ${section}` : '';
 
   set('tel-mile',    Math.round(derivedMile).toLocaleString());
   set('tel-elev',    latest.elevation_ft != null ? latest.elevation_ft.toLocaleString() : '—');

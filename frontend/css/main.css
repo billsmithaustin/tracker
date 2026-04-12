@@ -269,14 +269,6 @@ header {
   letter-spacing: 0.06em;
 }
 
-#map-section-name {
-  font-size: 0.68rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  margin-top: 2px;
-}
-
 /* ── Sidebar panels ──────────────────────────────────────────────────────── */
 #sidebar {
   display: flex;
