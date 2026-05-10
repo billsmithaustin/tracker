@@ -211,8 +211,8 @@ document.getElementById('geo-btn').addEventListener('click', () => {
   btn.textContent = 'Detecting…';
   navigator.geolocation.getCurrentPosition(
     pos => {
-      document.getElementById('f-lat').value = pos.coords.latitude.toFixed(5);
-      document.getElementById('f-lng').value = Math.abs(pos.coords.longitude).toFixed(5);
+      document.getElementById('f-lat').value = pos.coords.latitude.toFixed(4);
+      document.getElementById('f-lng').value = Math.abs(pos.coords.longitude).toFixed(4);
       btn.disabled = false;
       btn.textContent = '📍 Detected ✓';
       fetchWeatherPreview(pos.coords.latitude, pos.coords.longitude);
