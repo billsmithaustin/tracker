@@ -23,7 +23,9 @@ A cycling trip tracker/dashboard styled after the Artemis II mission tracker (ar
 
 ## Content Security Policy
 
-When adding or changing JavaScript that calls an external service, also add that service's origin to the `connect-src` directive in `nginx/nginx.conf`. Currently allowed: `https://api.open-meteo.com`, `https://nominatim.openstreetmap.org`.
+When adding or changing JavaScript that calls an external service, also add that service's origin to the `connect-src` directive in `nginx/nginx.conf` and/or `nginx/nginx-prod.conf`. Currently allowed: `https://api.open-meteo.com`, `https://nominatim.openstreetmap.org`.
+
+When making a change that touches one of these nginx config files, always report whether the same change was or was not applied to the other file, and why.
 
 ## Testing
 
