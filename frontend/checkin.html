@@ -216,6 +216,7 @@ document.getElementById('geo-btn').addEventListener('click', () => {
       btn.disabled = false;
       btn.textContent = '📍 Detected ✓';
       fetchWeatherPreview(pos.coords.latitude, pos.coords.longitude);
+      fetchLocationName(pos.coords.latitude, pos.coords.longitude);
     },
     err => {
       btn.disabled = false;
@@ -225,6 +226,37 @@ document.getElementById('geo-btn').addEventListener('click', () => {
     { enableHighAccuracy: true, timeout: 10000 }
   );
 });
+
+// ── Reverse geocode ───────────────────────────────────────────────────────
+async function fetchLocationName(lat, lng) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+    const r = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    const d = await r.json();
+    const addr = d.address || {};
+    const town = addr.city || addr.town || addr.village || addr.hamlet || addr.county || '';
+    const isoState = addr['ISO3166-2-lvl4'] || '';  // e.g. "US-MT"
+    const state = isoState.includes('-') ? isoState.split('-')[1] : '';
+    if (town && !document.getElementById('f-town').value)
+      document.getElementById('f-town').value = town;
+    if (state && !document.getElementById('f-state').value) {
+      const sel = document.getElementById('f-state');
+      for (const opt of sel.options) {
+        if (opt.value === state) { sel.value = state; break; }
+      }
+    }
+  } catch {
+    // silently fail — user can fill manually
+  }
+}
+
+function tryAutoLocation() {
+  const lat = parseFloat(document.getElementById('f-lat').value);
+  const lng = parseFloat(document.getElementById('f-lng').value);
+  if (!isNaN(lat) && !isNaN(lng)) fetchLocationName(lat, -lng);
+}
+document.getElementById('f-lat').addEventListener('blur', tryAutoLocation);
+document.getElementById('f-lng').addEventListener('blur', tryAutoLocation);
 
 // ── Weather preview ───────────────────────────────────────────────────────
 async function fetchWeatherPreview(lat, lng) {

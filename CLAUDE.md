@@ -1,5 +1,9 @@
 # TransAmerica Trail Tracker
 
+## Collaboration style
+
+When the user proposes a change or idea, give an objective assessment. Do not bias the response toward praise or criticism based on how the user might react.
+
 A cycling trip tracker/dashboard styled after the Artemis II mission tracker (artemis-ii-tracker.com). The humor is intentional — applying NASA mission-control aesthetics to a bicycle trip.
 
 ## Route
@@ -16,6 +20,10 @@ A cycling trip tracker/dashboard styled after the Artemis II mission tracker (ar
 - **Reverse proxy**: nginx — locally on port 80; in production (`docker-compose.prod.yml` overlay) on ports 80 (HTTP→HTTPS redirect) and 443 (SSL termination via Let's Encrypt certs mounted from the host)
 - **Data**: SQLite database and uploaded photos persisted in a named Docker volume (`api-data`)
 - **No local Go required** — everything runs in Docker
+
+## Content Security Policy
+
+When adding or changing JavaScript that calls an external service, also add that service's origin to the `connect-src` directive in `nginx/nginx.conf`. Currently allowed: `https://api.open-meteo.com`, `https://nominatim.openstreetmap.org`.
 
 ## Testing
 
