@@ -65,6 +65,29 @@ type town struct {
 	Lat  float64 `json:"lat"`
 	Lng  float64 `json:"lng"`
 	Name string  `json:"name"`
+	Pop  int     `json:"pop,omitempty"`
+}
+
+// loadTownPops reads data/town-populations.json (written by make town-pops) and
+// returns a map from "%.4f|%.4f" coord key to population.  Missing file is not
+// an error — towns will just have Pop == 0.
+func loadTownPops() map[string]int {
+	data, err := os.ReadFile("data/town-populations.json")
+	if err != nil {
+		return nil
+	}
+	var records map[string]struct {
+		Pop int `json:"pop"`
+	}
+	if err := json.Unmarshal(data, &records); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not parse data/town-populations.json: %v\n", err)
+		return nil
+	}
+	pops := make(map[string]int, len(records))
+	for k, v := range records {
+		pops[k] = v.Pop
+	}
+	return pops
 }
 
 // cmtToCategory maps GPX <cmt> values to display categories.
@@ -436,6 +459,11 @@ func main() {
 	fmt.Printf("  %-12s %d\n", "total:", len(stops))
 
 	// ── Extract town waypoints (geocache category) ────────────────────────────
+	townPops := loadTownPops()
+	if townPops != nil {
+		fmt.Printf("Loaded population data for %d towns\n", len(townPops))
+	}
+
 	seenTowns := make(map[string]bool)
 	var towns []town
 
@@ -453,10 +481,15 @@ func main() {
 		}
 		seenTowns[key] = true
 
+		lat := math.Round(w.Lat*10000) / 10000
+		lng := math.Round(w.Lon*10000) / 10000
+		pop := townPops[fmt.Sprintf("%.4f|%.4f", lat, lng)]
+
 		towns = append(towns, town{
-			Lat:  math.Round(w.Lat*10000) / 10000,
-			Lng:  math.Round(w.Lon*10000) / 10000,
+			Lat:  lat,
+			Lng:  lng,
 			Name: name,
+			Pop:  pop,
 		})
 	}
 	fmt.Printf("Towns: %d\n", len(towns))

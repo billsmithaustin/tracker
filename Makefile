@@ -1,4 +1,4 @@
-.PHONY: up down build logs reset gpx stamp vendor provision push deploy setup
+.PHONY: up down build logs reset gpx town-pops stamp vendor provision push deploy setup
 
 up: frontend/js/route-data.js stamp ## Start all services (build if needed)
 	docker compose up --build
@@ -23,6 +23,9 @@ frontend/js/route-data.js: ## Generate route-data.js from GPX files if not prese
 
 gpx: ## Force-regenerate frontend/js/route-data.js from GPX files
 	go run ./tools/process-gpx
+
+town-pops: ## Fetch GeoNames population data for route towns; writes data/town-populations.json (run once, set GEONAMES_USER in .env first)
+	go run ./tools/fetch-town-pops
 
 vendor: ## Download/update vendored frontend libraries (Leaflet, Chart.js) into frontend/vendor/
 	./scripts/update-vendor.sh

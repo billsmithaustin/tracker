@@ -8,6 +8,12 @@ function fmtDate(iso) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function fmtTime(iso) {
+  if (!iso || iso.length === 10) return '';
+  const d = new Date(iso);
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
 function fmtDuration(minutes) {
   if (minutes == null) return '—';
   const h = Math.floor(minutes / 60);
@@ -49,7 +55,7 @@ function renderLogEntry(c, deleteBtn = '') {
 
   return `
     <div class="log-entry">
-      <div class="log-date">${fmtDate(c.date || c.created_at)}</div>
+      <div class="log-date">${fmtDate(c.date || c.created_at)}${fmtTime(c.created_at) ? ' ' + fmtTime(c.created_at) : ''}</div>
       <div class="log-body">
         <div class="log-header">
           <span class="log-location">${escHtml(location)}</span>
