@@ -285,6 +285,61 @@ func TestLatestCheckinEmptyDB(t *testing.T) {
 	}
 }
 
+func TestNotePreservedAfterSecondCheckinSameDay(t *testing.T) {
+	resetDB(t)
+
+	note := "great campsite"
+	photoURL := "/api/photos/day2.jpg"
+
+	// First check-in: has a note, no photo
+	w := httptest.NewRecorder()
+	handleCreateCheckin(w, authedRequest("POST", "/checkins", map[string]any{
+		"town":        "Afton",
+		"state":       "VA",
+		"created_at":  "2026-04-20T08:00:00Z",
+		"miles_today": 55.0,
+		"note":        note,
+	}))
+	if w.Code != http.StatusCreated {
+		t.Fatalf("first checkin: got %d; body: %s", w.Code, w.Body)
+	}
+
+	// Second check-in: same day, has a photo, no note
+	w2 := httptest.NewRecorder()
+	handleCreateCheckin(w2, authedRequest("POST", "/checkins", map[string]any{
+		"town":       "Waynesboro",
+		"state":      "VA",
+		"created_at": "2026-04-20T18:00:00Z",
+		"photo_url":  photoURL,
+	}))
+	if w2.Code != http.StatusCreated {
+		t.Fatalf("second checkin: got %d; body: %s", w2.Code, w2.Body)
+	}
+
+	// List check-ins and verify the first one still has its note
+	w3 := httptest.NewRecorder()
+	handleListCheckins(w3, httptest.NewRequest("GET", "/checkins", nil))
+	var checkins []Checkin
+	json.NewDecoder(w3.Body).Decode(&checkins)
+	if len(checkins) != 2 {
+		t.Fatalf("expected 2 checkins, got %d", len(checkins))
+	}
+
+	// Results are ordered by created_at DESC, so checkins[0] is the second, checkins[1] is the first
+	first := checkins[1]
+	second := checkins[0]
+
+	if first.Note == nil || *first.Note != note {
+		t.Errorf("first checkin note: got %v, want %q", first.Note, note)
+	}
+	if second.PhotoURL == nil || *second.PhotoURL != photoURL {
+		t.Errorf("second checkin photo_url: got %v, want %q", second.PhotoURL, photoURL)
+	}
+	if second.Note != nil {
+		t.Errorf("second checkin note: expected nil, got %q", *second.Note)
+	}
+}
+
 // itoa converts int64 to string without importing strconv in test helpers.
 func itoa(n int64) string {
 	return string(bytes.TrimSpace([]byte(fmt.Sprint(n))))

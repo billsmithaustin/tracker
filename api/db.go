@@ -68,7 +68,16 @@ func createSchema() {
 		weather_temp_f    REAL,
 		weather_condition TEXT,
 		weather_wind_mph  REAL,
-		weather_wind_dir  TEXT
+		weather_wind_dir  TEXT,
+		note              TEXT
+	)`)
+	// Migration for existing databases that predate the note column on checkins.
+	db.Exec(`ALTER TABLE checkins ADD COLUMN note TEXT`)
+	// Copy any notes from day_stats (old location) to the owning check-in.
+	db.Exec(`UPDATE checkins SET note = (
+		SELECT ds.note FROM day_stats ds WHERE ds.checkin_id = checkins.id AND ds.note IS NOT NULL
+	) WHERE note IS NULL AND EXISTS (
+		SELECT 1 FROM day_stats ds WHERE ds.checkin_id = checkins.id AND ds.note IS NOT NULL
 	)`)
 	mustExec(`CREATE TABLE IF NOT EXISTS day_stats (
 		day_id               INTEGER PRIMARY KEY REFERENCES days(id),

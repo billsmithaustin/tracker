@@ -49,7 +49,7 @@ const checkinSQL = `
 		c.weather_temp_f, c.weather_condition, c.weather_wind_mph, c.weather_wind_dir,
 		d.date,
 		CASE WHEN ds.day_id IS NOT NULL THEN d.is_rest_day ELSE NULL END AS is_rest_day,
-		ds.note,
+		c.note,
 		ds.miles           AS miles_today,
 		ds.elevation_gain  AS elevation_gain_today,
 		ds.elevation_loss  AS elevation_loss_today,
@@ -88,7 +88,7 @@ func scanCheckin(rows *sql.Rows) (Checkin, error) {
 		town, state, name, photoURL                        sql.NullString
 		weatherCondition, weatherWindDir                   sql.NullString
 		elevFt, isRestDayRaw                               sql.NullInt64
-		dsNote, dsLodging                                  sql.NullString
+		cNote, dsLodging                                   sql.NullString
 		dsMiles, dsAvgSpeed, dsOverride                    sql.NullFloat64
 		dsGain, dsLoss, dsMoving                           sql.NullInt64
 	)
@@ -99,7 +99,7 @@ func scanCheckin(rows *sql.Rows) (Checkin, error) {
 		&weatherTempF, &weatherCondition, &weatherWindMph, &weatherWindDir,
 		&c.Date,
 		&isRestDayRaw,
-		&dsNote,
+		&cNote,
 		&dsMiles,
 		&dsGain, &dsLoss, &dsMoving,
 		&dsAvgSpeed,
@@ -122,7 +122,7 @@ func scanCheckin(rows *sql.Rows) (Checkin, error) {
 	c.WeatherWindMph = nullPtr(weatherWindMph.Valid, weatherWindMph.Float64)
 	c.WeatherWindDir = nullPtr(weatherWindDir.Valid, weatherWindDir.String)
 	c.IsRestDay = ptrBool(isRestDayRaw)
-	c.Note = nullPtr(dsNote.Valid, dsNote.String)
+	c.Note = nullPtr(cNote.Valid, cNote.String)
 	c.MilesToday = nullPtr(dsMiles.Valid, dsMiles.Float64)
 	c.ElevGainToday = nullPtr(dsGain.Valid, dsGain.Int64)
 	c.ElevLossToday = nullPtr(dsLoss.Valid, dsLoss.Int64)
@@ -357,11 +357,13 @@ func upsertDay(date string, isRestDay bool) (int64, error) {
 func insertCheckin(dayID int64, ts string, b checkinRequest) (int64, error) {
 	result, err := db.Exec(`INSERT INTO checkins (
 		day_id, created_at, lat, lng, name, town, state, mile_marker, elevation_ft,
-		photo_url, weather_temp_f, weather_condition, weather_wind_mph, weather_wind_dir
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		photo_url, weather_temp_f, weather_condition, weather_wind_mph, weather_wind_dir,
+		note
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		dayID, ts,
 		b.Lat, b.Lng, b.Name, b.Town, b.State, b.MileMarker, b.ElevationFt,
 		b.PhotoURL, b.WeatherTempF, b.WeatherCondition, b.WeatherWindMph, b.WeatherWindDir,
+		b.Note,
 	)
 	if err != nil {
 		return 0, err
@@ -372,8 +374,8 @@ func insertCheckin(dayID int64, ts string, b checkinRequest) (int64, error) {
 func upsertDayStats(dayID, checkinID int64, b checkinRequest) error {
 	_, err := db.Exec(`INSERT INTO day_stats (
 		day_id, checkin_id, miles, elevation_gain, elevation_loss,
-		moving_time_minutes, avg_speed, lodging_type, total_miles_override, note
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		moving_time_minutes, avg_speed, lodging_type, total_miles_override
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(day_id) DO UPDATE SET
 		checkin_id           = excluded.checkin_id,
 		miles                = excluded.miles,
@@ -382,12 +384,11 @@ func upsertDayStats(dayID, checkinID int64, b checkinRequest) error {
 		moving_time_minutes  = excluded.moving_time_minutes,
 		avg_speed            = excluded.avg_speed,
 		lodging_type         = excluded.lodging_type,
-		total_miles_override = excluded.total_miles_override,
-		note                 = excluded.note`,
+		total_miles_override = excluded.total_miles_override`,
 		dayID, checkinID,
 		b.MilesToday, b.ElevGainToday, b.ElevLossToday,
 		b.MovingTimeMinutes, b.AvgSpeedToday, b.LodgingType,
-		b.TotalMilesOverride, b.Note,
+		b.TotalMilesOverride,
 	)
 	return err
 }
