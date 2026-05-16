@@ -16,6 +16,14 @@ func main() {
 		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 	})
 
+	mux.HandleFunc("GET /auth", func(w http.ResponseWriter, r *http.Request) {
+		if !checkAuth(r) {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+	})
+
 	// Checkins — /checkins/latest must be registered before /checkins/{id}
 	// but Go 1.22 mux prefers literal segments over wildcards regardless of order.
 	mux.HandleFunc("GET /checkins/latest", handleLatestCheckin)

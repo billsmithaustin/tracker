@@ -54,6 +54,19 @@
 
 </div>
 
+<!-- ── Admin password modal ──────────────────────────────────────────────── -->
+<div id="admin-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:var(--panel-bg);border:1px solid rgba(0,210,255,0.35);border-radius:6px;padding:1.5rem;min-width:280px;display:flex;flex-direction:column;gap:1rem;">
+    <div style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;color:var(--text);">Admin Mode</div>
+    <input id="admin-pw-input" type="password" placeholder="Check-in password"
+      style="background:rgba(0,0,0,0.4);border:1px solid rgba(0,210,255,0.35);border-radius:4px;padding:0.5rem 0.75rem;color:var(--text);font-size:1rem;outline:none;">
+    <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
+      <button class="log-more-btn" onclick="closeAdminModal()">Cancel</button>
+      <button class="log-more-btn" onclick="submitAdminPassword()">Enable</button>
+    </div>
+  </div>
+</div>
+
 <script src="/js/helpers.js?v=1778432696"></script>
 <script>
 const API = '/api';
@@ -64,20 +77,44 @@ let adminPassword = sessionStorage.getItem('adminPassword') || null;
 
 function toggleAdmin() {
   if (adminPassword) {
-    // Lock: clear password and re-render
     adminPassword = null;
     sessionStorage.removeItem('adminPassword');
     updateAdminBtn();
     renderPage(currentPage);
     return;
   }
-  const pw = prompt('Enter check-in password to enable admin mode:');
+  const modal = document.getElementById('admin-modal');
+  const input = document.getElementById('admin-pw-input');
+  input.value = '';
+  modal.style.display = 'flex';
+  input.focus();
+}
+
+function closeAdminModal() {
+  document.getElementById('admin-modal').style.display = 'none';
+}
+
+async function submitAdminPassword() {
+  const pw = document.getElementById('admin-pw-input').value;
+  closeAdminModal();
   if (!pw) return;
+  const res = await fetch(`${API}/auth`, { headers: { 'X-Checkin-Password': pw } });
+  if (res.status === 401) {
+    alert('Wrong password.');
+    return;
+  }
   adminPassword = pw;
   sessionStorage.setItem('adminPassword', pw);
   updateAdminBtn();
   renderPage(currentPage);
 }
+
+document.addEventListener('keydown', e => {
+  if (document.getElementById('admin-modal').style.display === 'flex') {
+    if (e.key === 'Enter') submitAdminPassword();
+    if (e.key === 'Escape') closeAdminModal();
+  }
+});
 
 function updateAdminBtn() {
   const btn = document.getElementById('admin-btn');
