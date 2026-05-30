@@ -887,4 +887,21 @@ footer {
   .ms-metric-value {
     font-size: 1.3rem;
   }
+
+  /* Header: allow items to wrap so buttons don't overflow the viewport */
+  header {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 16px;
+  }
+  .header-title .subtitle { display: none; }
+  .header-right { width: 100%; justify-content: flex-end; gap: 8px; }
+
+  /* Footer: hide the long route description; remaining items fit comfortably */
+  footer > span:first-child { display: none; }
+
+  /* Pagination: tighter spacing and smaller page-info so it fits on narrow screens */
+  .pagination { gap: 8px; flex-wrap: wrap; }
+  .page-btn { padding: 4px 10px; }
+  .page-info { letter-spacing: 0.04em; }
 }
