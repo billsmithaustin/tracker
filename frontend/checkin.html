@@ -213,6 +213,9 @@ document.getElementById('geo-btn').addEventListener('click', () => {
     pos => {
       document.getElementById('f-lat').value = pos.coords.latitude.toFixed(4);
       document.getElementById('f-lng').value = Math.abs(pos.coords.longitude).toFixed(4);
+      if (pos.coords.altitude != null) {
+        document.getElementById('f-elev').value = Math.round(pos.coords.altitude * 3.28084);
+      }
       btn.disabled = false;
       btn.textContent = '📍 Detected ✓';
       fetchWeatherPreview(pos.coords.latitude, pos.coords.longitude);
