@@ -4,3 +4,4 @@ tracker.iml
 gpx/*
 frontend/js/route-data.js
 frontend/js/waypoints-data.js
+photos/*
